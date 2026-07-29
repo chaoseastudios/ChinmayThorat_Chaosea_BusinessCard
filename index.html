@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Chaosea Studios | Digital Business Card</title>
     <style>
         /* BASE & ENVIRONMENT */
@@ -12,11 +12,14 @@
             background-color: #050a14; 
             color: #fff; 
             overflow: hidden; 
-            height: 100vh; 
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh; /* Dynamic viewport fix for mobile browsers */
             display: flex; 
             align-items: center; 
             justify-content: center; 
             perspective: 1200px;
+            position: fixed; /* Prevents Android rubber-band scrolling */
         }
 
         /* BACKGROUND ELEMENTS */
@@ -51,7 +54,7 @@
         }
         
         .intro-logo-container {
-            position: relative; width: 300px; max-width: 60vw; opacity: 0; transform: scale(0.95);
+            position: relative; width: 280px; max-width: 75vw; opacity: 0; transform: scale(0.95);
             transition: all 2s cubic-bezier(0.16, 1, 0.3, 1);
         }
         
@@ -66,18 +69,18 @@
         }
 
         .greeting {
-            font-size: 1.1rem; color: #8b9bb4; font-weight: 300; letter-spacing: 2px; margin-bottom: 8px;
+            font-size: 1rem; color: #8b9bb4; font-weight: 300; letter-spacing: 2px; margin-bottom: 6px;
         }
 
         .welcome {
-            font-size: 1.4rem; color: #ffffff; font-weight: 400; letter-spacing: 4px; text-transform: uppercase;
+            font-size: 1.2rem; color: #ffffff; font-weight: 400; letter-spacing: 3px; text-transform: uppercase;
         }
 
-        /* 3D CARD WRAPPER */
+        /* 3D CARD WRAPPER - Optimized for Mobile Scaling */
         #card-container {
             position: relative; z-index: 10;
-            width: 90vw; max-width: 800px; aspect-ratio: 16 / 9;
-            perspective: 1500px; opacity: 0; transform: translateY(30px) scale(0.95);
+            width: 92vw; max-width: 650px; aspect-ratio: 16 / 9;
+            perspective: 1500px; opacity: 0; transform: translateY(20px) scale(0.95);
             transition: opacity 1.5s ease, transform 1.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
         #card-container.visible { opacity: 1; transform: translateY(0) scale(1); }
@@ -85,8 +88,8 @@
         /* IDLE ANIMATION */
         .idle-float { animation: floatDrift 8s ease-in-out infinite alternate; }
         @keyframes floatDrift {
-            0% { transform: translateY(-5px) rotateX(2deg) rotateY(-2deg); }
-            100% { transform: translateY(5px) rotateX(-2deg) rotateY(2deg); }
+            0% { transform: translateY(-4px) rotateX(1.5deg) rotateY(-1.5deg); }
+            100% { transform: translateY(4px) rotateX(-1.5deg) rotateY(1.5deg); }
         }
 
         /* TRUE 3D CARD CONSTRUCTION */
@@ -101,6 +104,7 @@
 
         .card-face {
             position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
+            -webkit-backface-visibility: hidden; /* Safari/Android fix */
             border-radius: 12px; background-size: cover; background-position: center; overflow: hidden;
             border: 1px solid rgba(255,255,255,0.05);
         }
@@ -123,8 +127,8 @@
         .card-face::after {
             content: ''; position: absolute; top: -150%; left: -150%; width: 300%; height: 300%;
             background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%);
-            width: 30px; /* Small width */
-            filter: blur(8px); /* Blurred effect */
+            width: 30px; 
+            filter: blur(8px); 
             transform: rotate(45deg);
             pointer-events: none;
             animation: cardShine 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
@@ -135,10 +139,9 @@
             100% { transform: rotate(45deg) translateY(100%) translateX(100%); }
         }
 
-        /* INVISIBLE HITBOXES - Purely functional, zero visual footprint */
+        /* INVISIBLE HITBOXES */
         .hitbox { position: absolute; cursor: pointer; z-index: 20; display: block; text-decoration: none; }
         
-        /* Adjusted coordinates to match printed layout */
         .hit-name { top: 10%; left: 5%; width: 50%; height: 20%; }
         .hit-phone { top: 66%; left: 5%; width: 45%; height: 10%; }
         .hit-email { top: 76%; left: 5%; width: 60%; height: 10%; }
@@ -146,22 +149,20 @@
 
         /* SOCIAL GLASS BUTTONS (Instagram & WhatsApp) */
         .social-btn {
-            position: absolute; bottom: 15px; width: 44px; height: 44px;
+            position: absolute; bottom: 12px; width: 40px; height: 40px;
             background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px;
             display: flex; align-items: center; justify-content: center; z-index: 20; color: #fff;
             transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer;
         }
-        .social-btn:hover { background: rgba(255, 255, 255, 0.15); transform: translateY(-2px) scale(1.05); }
-        .social-btn svg { width: 20px; height: 20px; fill: currentColor; }
+        .social-btn svg { width: 18px; height: 18px; fill: currentColor; }
         
-        /* Specific Button Positioning */
-        .btn-ig { right: 15px; }
-        .btn-wa { right: 69px; } 
+        .btn-ig { right: 12px; }
+        .btn-wa { right: 60px; } 
 
         /* BOTTOM ACTION UI */
         #interactive-ui {
-            position: absolute; bottom: 12vh; left: 50%; transform: translateX(-50%);
+            position: absolute; bottom: 8vh; left: 50%; transform: translateX(-50%);
             opacity: 0; pointer-events: none;
             transition: opacity 0.4s ease, transform 0.4s ease; z-index: 50;
         }
@@ -169,24 +170,21 @@
         
         .glass-btn {
             background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; padding: 12px 28px;
-            border-radius: 30px; font-size: 14px; font-weight: 400; letter-spacing: 1px;
+            border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; padding: 10px 24px;
+            border-radius: 30px; font-size: 13px; font-weight: 400; letter-spacing: 1px;
             cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: all 0.3s ease;
             text-transform: uppercase;
-        }
-        .glass-btn:hover {
-            background: rgba(255, 255, 255, 0.15); transform: translateY(-2px); border-color: rgba(255,255,255,0.3);
         }
 
         /* TOAST NOTIFICATION */
         #toast {
             position: fixed; bottom: -60px; left: 50%; transform: translateX(-50%);
-            background: rgba(20, 25, 35, 0.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 12px 24px; border-radius: 30px;
-            font-size: 13px; font-weight: 400; letter-spacing: 0.5px; opacity: 0; z-index: 1000;
+            background: rgba(20, 25, 35, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.15); color: #fff; padding: 10px 20px; border-radius: 30px;
+            font-size: 12px; font-weight: 400; letter-spacing: 0.5px; opacity: 0; z-index: 1000;
             transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); cursor: pointer; pointer-events: none;
         }
-        #toast.show { bottom: 40px; opacity: 1; pointer-events: auto; }
+        #toast.show { bottom: 30px; opacity: 1; pointer-events: auto; }
     </style>
 </head>
 <body>
@@ -244,7 +242,7 @@
     <div id="toast" onclick="manualDownload()"></div>
 
     <script>
-        // --- 0. SYNTHESIZED AUDIO ENGINE (From Advanced Ver) ---
+        // --- 0. SYNTHESIZED AUDIO ENGINE ---
         const AudioEngine = (function() {
             let ctx = null;
             function init() {
@@ -277,7 +275,6 @@
             };
         })();
 
-        // Enable audio context on first user interaction
         window.addEventListener('pointerdown', () => { AudioEngine.init(); }, {once: true});
 
         // --- 1. STATE LOGIC & PARTICLE ENGINE ---
@@ -429,7 +426,6 @@
             
             card.classList.remove('idle-float');
             card.style.transition = 'none'; 
-            AudioEngine.playTick();
 
             requestGyroPermission();
         }
@@ -440,7 +436,9 @@
             const clientY = e.clientY || (e.touches && e.touches[0].clientY);
             
             const dist = Math.sqrt(Math.pow(clientX - startX, 2) + Math.pow(clientY - startY, 2));
-            if (dist > 12) hasDragged = true;
+            
+            // Increased movement threshold to 20px so simple taps never count as drags on Android
+            if (dist > 20) hasDragged = true;
 
             const bounds = card.getBoundingClientRect();
             let rotateX = ((clientY - bounds.top - bounds.height / 2) / 15) * -1; 
@@ -552,7 +550,7 @@
 
         function downloadVCard(silent = false) {
             const vcard = `BEGIN:VCARD\nVERSION:3.0\nN:Thorat;Chinmay;;;\nFN:Chinmay Thorat\nORG:Chaosea Studios\nTITLE:Founder & Studio Head\nTEL;TYPE=CELL,VOICE:+918879950929\nEMAIL:business@chaoseastudios.com\nURL:https://chaoseastudios.com\nEND:VCARD`;
-            triggerDownload(new Blob([vcard], { type: 'text/vcard' }), 'Chinmay Thorat (Chaosea Studios).vcf');
+            triggerDownload(new Blob([vcard], { type: 'text/vcard' }), 'ChinmayThorat_ChaoseaStudios.vcf');
             if(!silent) showToast("Saving Contact...");
         }
 
