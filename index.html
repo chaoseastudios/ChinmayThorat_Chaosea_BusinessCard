@@ -558,12 +558,12 @@
         // Force image download & robust clipboard handling
         function downloadCardLink(silent = false) {
             const targetLink = "http://chinmaythorat.chaoseastudios.com/";
-            const imagePath = "CTCS_BC_QR.jpg";
+            const imagePath = "CTCS_BC_QR.png";
             
             // 1. Trigger the image download via anchor tag
             const a = document.createElement('a');
             a.href = imagePath;
-            a.download = "Chinmay_Thorat_QR.jpg";
+            a.download = "CTCS_BC_QR.png";
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
