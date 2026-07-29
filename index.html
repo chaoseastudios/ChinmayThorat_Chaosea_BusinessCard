@@ -20,6 +20,10 @@
             justify-content: center; 
             perspective: 1200px;
             position: fixed; /* Prevents Android rubber-band scrolling */
+            
+            /* FIX 1: Lock the viewport and prevent panning/zooming on mobile */
+            touch-action: none; 
+            overscroll-behavior: none;
         }
 
         /* BACKGROUND ELEMENTS */
@@ -336,7 +340,7 @@
                 resize();
                 for(let i=0; i<60; i++) particles.push(new Particle());
                 
-                window.addEventListener('mousemove', e => {
+                window.addEventListener('pointermove', e => {
                     mouse.vx = e.clientX - mouse.x;
                     mouse.vy = e.clientY - mouse.y;
                     mouse.x = e.clientX;
@@ -410,19 +414,18 @@
         let startX, startY;
         let gyroPermissionGranted = false;
 
-        card.addEventListener('mousedown', onPointerDown);
-        card.addEventListener('touchstart', onPointerDown, {passive: true});
-
-        window.addEventListener('mousemove', onPointerMove);
-        window.addEventListener('touchmove', onPointerMove, {passive: true});
-
-        window.addEventListener('mouseup', onPointerUp);
-        window.addEventListener('touchend', onPointerUp);
+        // FIX 2: Replaced duplicated mouse/touch events with Pointer Events to fix the "Ghost Click" double flip bug.
+        card.addEventListener('pointerdown', onPointerDown);
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+        window.addEventListener('pointercancel', onPointerUp); // Handles if OS interrupts the touch
 
         function onPointerDown(e) {
             isDragging = true; hasDragged = false;
-            startX = e.clientX || (e.touches && e.touches[0].clientX);
-            startY = e.clientY || (e.touches && e.touches[0].clientY);
+            
+            // PointerEvents inherently pass clientX and clientY for both touch and mouse
+            startX = e.clientX;
+            startY = e.clientY;
             
             card.classList.remove('idle-float');
             card.style.transition = 'none'; 
@@ -432,12 +435,11 @@
 
         function onPointerMove(e) {
             if (!isDragging) return;
-            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            const clientX = e.clientX;
+            const clientY = e.clientY;
             
             const dist = Math.sqrt(Math.pow(clientX - startX, 2) + Math.pow(clientY - startY, 2));
             
-            // Increased movement threshold to 20px so simple taps never count as drags on Android
             if (dist > 20) hasDragged = true;
 
             const bounds = card.getBoundingClientRect();
