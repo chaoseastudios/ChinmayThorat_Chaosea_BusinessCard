@@ -278,7 +278,6 @@
             };
         })();
 
-        // Try binding Gyroscope and Audio on the very first touch anywhere on the screen (improves Android support)
         window.addEventListener('pointerdown', () => { 
             AudioEngine.init(); 
             requestGyroPermission();
@@ -552,39 +551,57 @@
 
         function downloadVCard(silent = false) {
             const vcard = `BEGIN:VCARD\nVERSION:3.0\nN:Thorat;Chinmay;;;\nFN:Chinmay Thorat\nORG:Chaosea Studios\nTITLE:Founder & Studio Head\nTEL;TYPE=CELL,VOICE:+918879950929\nEMAIL:business@chaoseastudios.com\nURL:https://chaoseastudios.com\nEND:VCARD`;
-            triggerDownload(new Blob([vcard], { type: 'text/vcard' }), 'ChinmayThorat_ChaoseaStudios.vcf');
+            triggerDownloadBlob(new Blob([vcard], { type: 'text/vcard' }), 'ChinmayThorat_ChaoseaStudios.vcf');
             if(!silent) showToast("Saving Contact...");
         }
 
+        // Force image download & robust clipboard handling
         function downloadCardLink(silent = false) {
             const targetLink = "http://chinmaythorat.chaoseastudios.com/";
+            const imagePath = "CTCS_BC_QR.jpg";
             
-            // HTML Download formatting with instant meta-refresh
-            const htmlContent = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=${targetLink}">
-    <title>Redirecting...</title>
-</head>
-<body>
-    <p>Redirecting to <a href="${targetLink}">${targetLink}</a>...</p>
-</body>
-</html>`;
-            
-            triggerDownload(new Blob([htmlContent], { type: 'text/html' }), 'Chinmay Thorat (Chaosea Studios) BusinessCard.html');
-            
-            // Attempt clipboard copy
-            try {
-                if (navigator.clipboard) {
-                    navigator.clipboard.writeText(targetLink);
-                }
-            } catch(e) {}
+            // 1. Trigger the image download via anchor tag
+            const a = document.createElement('a');
+            a.href = imagePath;
+            a.download = "Chinmay_Thorat_QR.jpg";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
 
-            if(!silent) showToast("Card Saved & Link Copied!");
+            // 2. Attempt to Copy Link to Clipboard
+            const copySuccess = () => {
+                if(!silent) showToast("QR Downloaded & Link Copied!");
+            };
+            
+            const copyFallback = () => {
+                // Fallback for older browsers or non-secure contexts (http)
+                const textArea = document.createElement("textarea");
+                textArea.value = targetLink;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-999999px";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    copySuccess();
+                } catch (err) {
+                    if(!silent) showToast("QR Downloaded! (Clipboard blocked by browser)");
+                }
+                textArea.remove();
+            };
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(targetLink)
+                    .then(copySuccess)
+                    .catch(copyFallback);
+            } else {
+                copyFallback();
+            }
         }
 
-        function triggerDownload(blob, filename) {
+        // Used exclusively for the vCard Blob download
+        function triggerDownloadBlob(blob, filename) {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url; a.download = filename;
