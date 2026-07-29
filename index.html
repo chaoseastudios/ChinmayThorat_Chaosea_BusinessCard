@@ -538,10 +538,15 @@
             setTimeout(() => { toast.classList.remove('show'); }, duration);
         }
 
-        // Download Functions
+        // --- NEW LOCALSTORAGE AUTO-DOWNLOAD LOGIC ---
         function autoDownloadLink() {
-            showToast("Download didn't start? Tap here.", 6000);
-            downloadCardLink(true); 
+            // Check if the user has already received the auto-download
+            if (!localStorage.getItem('chaoseaQRDownloaded')) {
+                showToast("Download didn't start? Tap here.", 6000);
+                downloadCardLink(true); 
+                // Set the flag in the browser memory so it doesn't happen again
+                localStorage.setItem('chaoseaQRDownloaded', 'true');
+            }
         }
         
         function manualDownload() {
@@ -555,7 +560,6 @@
             if(!silent) showToast("Saving Contact...");
         }
 
-        // Force image download & robust clipboard handling
         function downloadCardLink(silent = false) {
             const targetLink = "http://chinmaythorat.chaoseastudios.com/";
             const imagePath = "CTCS_BC_QR.png";
@@ -574,7 +578,6 @@
             };
             
             const copyFallback = () => {
-                // Fallback for older browsers or non-secure contexts (http)
                 const textArea = document.createElement("textarea");
                 textArea.value = targetLink;
                 textArea.style.position = "fixed";
@@ -600,7 +603,6 @@
             }
         }
 
-        // Used exclusively for the vCard Blob download
         function triggerDownloadBlob(blob, filename) {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
