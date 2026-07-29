@@ -204,7 +204,6 @@
         </div>
         <div class="intro-text-group" id="intro-text">
             <div class="greeting" id="greeting-text"></div>
-            <!-- Updated Welcome Text Alignment -->
             <div class="welcome">Welcome To<br>Chaosea Studios</div>
         </div>
     </div>
@@ -246,7 +245,7 @@
     <div id="toast" onclick="manualDownload()"></div>
 
     <script>
-        // --- 0. SYNTHESIZED AUDIO ENGINE ---
+        // --- 0. SYNTHESIZED AUDIO ENGINE & PERMISSIONS INTERCEPT ---
         const AudioEngine = (function() {
             let ctx = null;
             function init() {
@@ -279,7 +278,11 @@
             };
         })();
 
-        window.addEventListener('pointerdown', () => { AudioEngine.init(); }, {once: true});
+        // Try binding Gyroscope and Audio on the very first touch anywhere on the screen (improves Android support)
+        window.addEventListener('pointerdown', () => { 
+            AudioEngine.init(); 
+            requestGyroPermission();
+        }, {once: true});
 
         // --- 1. STATE LOGIC & PARTICLE ENGINE ---
         let introDone = false;
@@ -448,9 +451,6 @@
         }
 
         function onPointerUp(e) {
-            // Gyroscope permission requires a completed user gesture (click/tap) to succeed on modern iOS.
-            requestGyroPermission();
-
             if (!isDragging) return;
             isDragging = false;
             card.style.transition = 'transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
@@ -557,19 +557,31 @@
         }
 
         function downloadCardLink(silent = false) {
-            // HTML Download formatting
+            const targetLink = "http://chinmaythorat.chaoseastudios.com/";
+            
+            // HTML Download formatting with instant meta-refresh
             const htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Chinmay Thorat's Business Card</title>
+    <meta http-equiv="refresh" content="0; url=${targetLink}">
+    <title>Redirecting...</title>
 </head>
 <body>
-    <p>Here is the link to Chinmay Thorat's Business Card: <a href="http://chinmaythorat.chaoseastudios.com/">http://chinmaythorat.chaoseastudios.com/</a></p>
+    <p>Redirecting to <a href="${targetLink}">${targetLink}</a>...</p>
 </body>
 </html>`;
+            
             triggerDownload(new Blob([htmlContent], { type: 'text/html' }), 'Chinmay Thorat (Chaosea Studios) BusinessCard.html');
-            if(!silent) showToast("Card Link Saved");
+            
+            // Attempt clipboard copy
+            try {
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(targetLink);
+                }
+            } catch(e) {}
+
+            if(!silent) showToast("Card Saved & Link Copied!");
         }
 
         function triggerDownload(blob, filename) {
