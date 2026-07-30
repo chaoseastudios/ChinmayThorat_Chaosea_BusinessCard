@@ -22,6 +22,7 @@
             position: fixed; 
             touch-action: none; 
             overscroll-behavior: none;
+            cursor: pointer; 
         }
 
         /* BACKGROUND ELEMENTS */
@@ -134,7 +135,7 @@
             transform-style: preserve-3d; 
             -webkit-transform-style: preserve-3d; 
             transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            cursor: grab;
+            cursor: pointer; /* Ensures mobile browsers recognize it as fully tappable */
             box-shadow: 0 20px 50px rgba(0,0,0,0.6); 
             border-radius: 12px;
         }
@@ -213,7 +214,7 @@
         #toast.show { bottom: 30px; opacity: 1; pointer-events: auto; }
     </style>
 </head>
-<body>
+<body onclick="void(0)">
 
     <!-- Environment -->
     <div class="bg-pattern" id="bg-pattern"></div>
@@ -303,7 +304,7 @@
             };
         })();
 
-        // One-time global listener specifically to authorize sensors securely on iOS
+        // One-time global listener to securely authorize sensors on iOS
         window.addEventListener('click', function initSensors() {
             AudioEngine.init();
             requestGyroPermission();
@@ -481,32 +482,32 @@
             autoDownloadLink();
         }
 
-        // --- 3. 3D PHYSICS, LIGHTING, & NATIVE CLICKS ---
+        // --- 3. 3D PHYSICS, LIGHTING, & TIME-BASED TAPS ---
         const card = document.getElementById('card');
         const cardWrapper = document.getElementById('card-wrapper');
         const bgPattern = document.getElementById('bg-pattern');
         const ambientGlow = document.getElementById('ambient-glow');
         
         let isFlipped = false, isDragging = false, hasDragged = false;
-        let startX, startY;
+        let startX, startY, startTime;
+        let dragDist = 0;
         let gyroPermissionGranted = false;
         let isFlipping = false;
 
-        // Interaction bound directly to the card
         card.addEventListener('pointerdown', onCardPointerDown);
         window.addEventListener('pointermove', onPointerMove);
         window.addEventListener('pointerup', onPointerUp);
         window.addEventListener('pointercancel', onPointerUp); 
-        
-        // Flip event restricted explicitly to the card itself
-        card.addEventListener('click', onCardClick);
 
         function onCardPointerDown(e) {
             if (e.target.closest('.hitbox') || e.target.closest('.social-btn')) return;
             
-            isDragging = true; hasDragged = false;
+            isDragging = true; 
+            hasDragged = false;
+            dragDist = 0;
             startX = e.clientX;
             startY = e.clientY;
+            startTime = Date.now();
             cardWrapper.classList.remove('idle-float');
         }
 
@@ -530,9 +531,10 @@
 
             if (!isDragging) return;
             
-            const dist = Math.sqrt(Math.pow(e.clientX - startX, 2) + Math.pow(e.clientY - startY, 2));
+            dragDist = Math.sqrt(Math.pow(e.clientX - startX, 2) + Math.pow(e.clientY - startY, 2));
             
-            if (dist > 15) {
+            // Visual drag threshold
+            if (dragDist > 15) {
                 if (!hasDragged) {
                     hasDragged = true;
                     card.style.transition = 'none'; 
@@ -556,32 +558,34 @@
             
             card.style.transition = 'transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
 
-            if (hasDragged) {
-                card.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
-                card.style.boxShadow = '0 20px 50px rgba(0,0,0,0.6)'; 
+            // Time vs. Distance algorithm: Allows for natural thumb-rolling on edges without canceling the tap
+            let timeElapsed = Date.now() - startTime;
+            let isTap = (dragDist < 15) || (timeElapsed < 300 && dragDist < 40);
+
+            if (isTap && e.target.closest('#card') && !e.target.closest('.hitbox') && !e.target.closest('.social-btn')) {
+                if (introDone) {
+                    isFlipped = !isFlipped;
+                    isFlipping = true;
+                    setTimeout(() => { isFlipping = false; }, 800);
+                    
+                    AudioEngine.playFlip();
+                    if(navigator.vibrate) navigator.vibrate(40);
+                    
+                    const ui = document.getElementById('interactive-ui');
+                    if (isFlipped) ui.classList.add('show');
+                    else ui.classList.remove('show');
+                }
             }
-
-            setTimeout(() => { if(!isDragging && !gyroPermissionGranted) cardWrapper.classList.add('idle-float'); }, 800);
-        }
-
-        function onCardClick(e) {
-            if (hasDragged) return; 
-            if (e.target.closest('.hitbox') || e.target.closest('.social-btn')) return;
-            if (!introDone) return; 
-
-            isFlipped = !isFlipped;
-            isFlipping = true;
-            setTimeout(() => { isFlipping = false; }, 800);
-            
-            AudioEngine.playFlip();
-            if(navigator.vibrate) navigator.vibrate(40);
-            
-            const ui = document.getElementById('interactive-ui');
-            if (isFlipped) ui.classList.add('show');
-            else ui.classList.remove('show');
 
             card.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
             card.style.boxShadow = '0 20px 50px rgba(0,0,0,0.6)'; 
+
+            if (!gyroPermissionGranted) {
+                bgPattern.style.transform = `translate(0px, 0px)`;
+                ambientGlow.style.transform = `translate(50vw, 50vh) translate(-50%, -50%)`;
+            }
+
+            setTimeout(() => { if(!isDragging && !gyroPermissionGranted) cardWrapper.classList.add('idle-float'); }, 800);
         }
 
         function applyTransform(x, y) {
@@ -593,8 +597,12 @@
             card.style.transform = `scale3d(1.02, 1.02, 1.02) rotate3d(1, 0, 0, ${x}deg) rotate3d(0, 1, 0, ${y}deg)`;
         }
 
-        // --- 4. GYROSCOPE (MOBILE PARALLAX) ---
+        // --- 4. GYROSCOPE (ONLY ENABLED ON MOBILE PHONES) ---
         function requestGyroPermission() {
+            // Strictly excludes Desktop PCs, Macs, and iPads. Keeps gyro enabled ONLY for Mobile Phones.
+            const isMobilePhone = /Android.*Mobile|iPhone|iPod/i.test(navigator.userAgent);
+            if (!isMobilePhone) return;
+
             if (gyroPermissionGranted) return;
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
                 DeviceOrientationEvent.requestPermission().then(permissionState => {
