@@ -216,7 +216,6 @@
         #toast.show { bottom: 30px; opacity: 1; pointer-events: auto; }
     </style>
 </head>
-<!-- iOS FIX: Dummy onclick forces Safari to treat the body as a tap zone -->
 <body onclick="void(0)">
 
     <!-- Environment -->
@@ -306,6 +305,21 @@
                 playAction: () => playTone(800, 'square', 0.1, 0.04)
             };
         })();
+
+        // Tap Ripples & Permissions
+        window.addEventListener('pointerdown', (e) => { 
+            AudioEngine.init(); 
+
+            const rippleContainer = document.getElementById('ripple-container');
+            if (rippleContainer) {
+                const ripple = document.createElement('div');
+                ripple.className = 'ripple';
+                ripple.style.left = `${e.clientX}px`;
+                ripple.style.top = `${e.clientY}px`;
+                rippleContainer.appendChild(ripple);
+                setTimeout(() => { if (ripple.parentNode) ripple.parentNode.removeChild(ripple); }, 800);
+            }
+        });
 
         // --- 1. STATE LOGIC & CONSTELLATION PARTICLE ENGINE ---
         let introDone = false;
@@ -484,17 +498,6 @@
         window.addEventListener('click', onScreenClick, { capture: true });
 
         function onPointerDown(e) {
-            // Spawn Holographic Ripple
-            const rippleContainer = document.getElementById('ripple-container');
-            if (rippleContainer) {
-                const ripple = document.createElement('div');
-                ripple.className = 'ripple';
-                ripple.style.left = `${e.clientX}px`;
-                ripple.style.top = `${e.clientY}px`;
-                rippleContainer.appendChild(ripple);
-                setTimeout(() => { if (ripple.parentNode) ripple.parentNode.removeChild(ripple); }, 800);
-            }
-
             if (e.target.closest('.hitbox') || e.target.closest('.social-btn')) return;
             
             isDragging = true; hasDragged = false;
@@ -556,10 +559,11 @@
             setTimeout(() => { if(!isDragging && !gyroPermissionGranted) cardWrapper.classList.add('idle-float'); }, 800);
         }
 
-        // iOS FIX: Initialize Sensors strictly on the native 'click' event
         function onScreenClick(e) {
             AudioEngine.init();
-            requestGyroPermission();
+            
+            // STRICT REQUIREMENT: Only flip if the physical card itself was tapped
+            if (!e.target.closest('#card')) return;
 
             if (hasDragged) {
                 e.preventDefault();
@@ -572,6 +576,9 @@
             }
 
             if (!introDone) return; 
+            
+            // Execute iOS Security Handshake for Gyroscope only on a direct click
+            requestGyroPermission();
 
             isFlipped = !isFlipped;
             isFlipping = true;
@@ -599,6 +606,10 @@
 
         // --- 4. GYROSCOPE (MOBILE PARALLAX) ---
         function requestGyroPermission() {
+            // iOS OVERRIDE: Completely disable gyroscope tracking on all Apple mobile devices
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            if (isIOS) return;
+
             if (gyroPermissionGranted) return;
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
                 DeviceOrientationEvent.requestPermission().then(permissionState => {
