@@ -26,17 +26,41 @@
 
         /* BACKGROUND ELEMENTS */
         .bg-pattern {
-            position: fixed; top: 0; left: 0; width: 200vw; height: 200vh; z-index: 0;
+            position: fixed; top: -10%; left: -10%; width: 120vw; height: 120vh; z-index: 0;
             background-image: url("data:image/svg+xml,%3Csvg width='60' height='103.923' viewBox='0 0 60 103.923' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 103.923L0 86.6025V51.9615L30 34.641L60 51.9615V86.6025L30 103.923ZM30 101.614L58 85.448V53.115L30 36.949L2 53.115V85.448L30 101.614Z' fill='rgba(255,255,255,0.02)'/%3E%3C/svg%3E");
             animation: panBg 60s linear infinite;
+            will-change: transform;
         }
-        @keyframes panBg { 0% { transform: translate(0, 0); } 100% { transform: translate(-60px, -103.923px); } }
+        @keyframes panBg { 
+            0% { background-position: 0 0; } 
+            100% { background-position: -60px -103.923px; } 
+        }
 
         .ambient-glow {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            position: fixed; top: 0; left: 0;
             width: 80vw; height: 80vh; 
-            background: radial-gradient(circle, rgba(10, 80, 200, 0.15) 0%, rgba(0,0,0,0) 70%);
+            background: radial-gradient(circle, rgba(10, 80, 200, 0.2) 0%, rgba(0,0,0,0) 70%);
             filter: blur(50px); z-index: 1; pointer-events: none;
+            transform: translate(50vw, 50vh) translate(-50%, -50%);
+            will-change: transform;
+            transition: transform 0.1s cubic-bezier(0.2, 0, 0.2, 1); /* Smooths out raw cursor tracking */
+        }
+
+        /* HOLOGRAPHIC RIPPLES */
+        #ripple-container {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none; z-index: 5; overflow: hidden;
+        }
+        .ripple {
+            position: absolute; border-radius: 50%;
+            border: 1px solid rgba(100, 180, 255, 0.7);
+            box-shadow: 0 0 15px rgba(100, 180, 255, 0.3), inset 0 0 10px rgba(100, 180, 255, 0.2);
+            transform: translate(-50%, -50%) scale(0);
+            animation: rippleAnim 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            width: 120px; height: 120px;
+        }
+        @keyframes rippleAnim {
+            to { transform: translate(-50%, -50%) scale(1.5); opacity: 0; border-width: 0px; }
         }
 
         /* REACTIVE PARTICLE CANVAS */
@@ -44,7 +68,7 @@
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            z-index: 1; pointer-events: none;
+            z-index: 2; pointer-events: none;
         }
 
         /* CINEMATIC INTRO SEQUENCE */
@@ -193,8 +217,9 @@
 <body>
 
     <!-- Environment -->
-    <div class="bg-pattern"></div>
-    <div class="ambient-glow"></div>
+    <div class="bg-pattern" id="bg-pattern"></div>
+    <div class="ambient-glow" id="ambient-glow"></div>
+    <div id="ripple-container"></div>
     <canvas id="particle-canvas"></canvas>
 
     <!-- Cinematic Intro -->
@@ -245,7 +270,7 @@
     <div id="toast" onclick="manualDownload()"></div>
 
     <script>
-        // --- 0. SYNTHESIZED AUDIO ENGINE & PERMISSIONS INTERCEPT ---
+        // --- 0. AUDIO, RIPPLES & PERMISSIONS ---
         const AudioEngine = (function() {
             let ctx = null;
             function init() {
@@ -278,12 +303,24 @@
             };
         })();
 
-        window.addEventListener('pointerdown', () => { 
+        // Tap Ripples & Permissions
+        window.addEventListener('pointerdown', (e) => { 
             AudioEngine.init(); 
             requestGyroPermission();
-        }, {once: true});
 
-        // --- 1. STATE LOGIC & PARTICLE ENGINE ---
+            // Spawn Holographic Ripple
+            const rippleContainer = document.getElementById('ripple-container');
+            if (rippleContainer) {
+                const ripple = document.createElement('div');
+                ripple.className = 'ripple';
+                ripple.style.left = `${e.clientX}px`;
+                ripple.style.top = `${e.clientY}px`;
+                rippleContainer.appendChild(ripple);
+                setTimeout(() => { if (ripple.parentNode) ripple.parentNode.removeChild(ripple); }, 800);
+            }
+        });
+
+        // --- 1. STATE LOGIC & CONSTELLATION PARTICLE ENGINE ---
         let introDone = false;
         
         const CanvasEngine = (function() {
@@ -340,8 +377,9 @@
             function init() {
                 window.addEventListener('resize', resize);
                 resize();
-                // Increased particle count from 60 to 150
-                for(let i=0; i<150; i++) particles.push(new Particle());
+                
+                // Optimized count (100 particles) for Constellation lines to preserve 60FPS on Mobile
+                for(let i=0; i<100; i++) particles.push(new Particle());
                 
                 window.addEventListener('pointermove', e => {
                     mouse.vx = e.clientX - mouse.x;
@@ -356,7 +394,28 @@
             function animate() {
                 ctx.fillStyle = '#050a14';
                 ctx.fillRect(0, 0, width, height);
-                particles.forEach(p => { p.update(); p.draw(); });
+                
+                // Draw Constellation Web
+                ctx.lineWidth = 0.5;
+                for (let i = 0; i < particles.length; i++) {
+                    particles[i].update();
+                    particles[i].draw();
+                    
+                    for (let j = i + 1; j < particles.length; j++) {
+                        let dx = particles[i].x - particles[j].x;
+                        let dy = particles[i].y - particles[j].y;
+                        let dist = dx*dx + dy*dy;
+                        
+                        // Draw line if close enough
+                        if (dist < 10000) { 
+                            ctx.beginPath();
+                            ctx.strokeStyle = `rgba(100, 180, 255, ${0.15 * (1 - dist/10000)})`;
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.stroke();
+                        }
+                    }
+                }
                 requestAnimationFrame(animate);
             }
             return { init };
@@ -411,8 +470,11 @@
             autoDownloadLink();
         }
 
-        // --- 3. 3D PHYSICS & INTERACTION ---
+        // --- 3. 3D PHYSICS, LIGHTING, & BACKGROUND PARALLAX ---
         const card = document.getElementById('card');
+        const bgPattern = document.getElementById('bg-pattern');
+        const ambientGlow = document.getElementById('ambient-glow');
+        
         let isFlipped = false, isDragging = false, hasDragged = false;
         let startX, startY;
         let gyroPermissionGranted = false;
@@ -433,12 +495,22 @@
         }
 
         function onPointerMove(e) {
+            // Background Parallax & Glow Tracking (Works even when not dragging card)
+            if (introDone && !gyroPermissionGranted) {
+                // Interactive Ambient Lighting
+                ambientGlow.style.transform = `translate(${e.clientX}px, ${e.clientY}px) translate(-50%, -50%)`;
+                
+                // Background Depth Parallax
+                let bgX = (e.clientX / window.innerWidth - 0.5) * -30;
+                let bgY = (e.clientY / window.innerHeight - 0.5) * -30;
+                bgPattern.style.transform = `translate(${bgX}px, ${bgY}px)`;
+            }
+
             if (!isDragging) return;
             const clientX = e.clientX;
             const clientY = e.clientY;
             
             const dist = Math.sqrt(Math.pow(clientX - startX, 2) + Math.pow(clientY - startY, 2));
-            
             if (dist > 20) hasDragged = true;
 
             const bounds = card.getBoundingClientRect();
@@ -480,11 +552,20 @@
             const shadowX = -shadowY_angle * 1.5;
             const shadowY = Math.max(20, 20 + (x * 1.5));
             
-            card.style.boxShadow = `${shadowX}px ${shadowY}px 60px rgba(0,0,0,0.7)`;
+            // Dynamic Edge Glint calculations based on tilt
+            const insetX = isFlipped ? -y : y;
+            const insetY = -x;
+            
+            // Combines Drop Shadow with bright rimlight (inset) and dark falloff rim (inset)
+            card.style.boxShadow = `
+                ${shadowX}px ${shadowY}px 60px rgba(0,0,0,0.7), 
+                inset ${insetX * 1.2}px ${insetY * 1.2}px 20px rgba(255,255,255,0.25), 
+                inset ${-insetX * 1.2}px ${-insetY * 1.2}px 20px rgba(0,0,0,0.4)
+            `;
             card.style.transform = `scale3d(1.02, 1.02, 1.02) rotate3d(1, 0, 0, ${x}deg) rotate3d(0, 1, 0, ${y}deg)`;
         }
 
-        // --- 4. GYROSCOPE (MOBILE) ---
+        // --- 4. GYROSCOPE (MOBILE PARALLAX) ---
         function requestGyroPermission() {
             if (gyroPermissionGranted) return;
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -500,9 +581,21 @@
             if (gyroPermissionGranted) return;
             gyroPermissionGranted = true;
             window.addEventListener('deviceorientation', (e) => {
-                if (isDragging) return;
                 let beta = e.beta; let gamma = e.gamma;
                 if (beta === null || gamma === null) return;
+                
+                // Background & Lighting Gyro Parallax
+                if (introDone) {
+                    let bgX = (gamma / 90) * -30;
+                    let bgY = ((beta - 45) / 90) * -30;
+                    bgPattern.style.transform = `translate(${bgX}px, ${bgY}px)`;
+                    
+                    let glowX = window.innerWidth / 2 + (gamma * 5);
+                    let glowY = window.innerHeight / 2 + ((beta - 45) * 5);
+                    ambientGlow.style.transform = `translate(${glowX}px, ${glowY}px) translate(-50%, -50%)`;
+                }
+
+                if (isDragging) return;
                 
                 let x = Math.max(-12, Math.min(12, (beta - 45) / 4));
                 let y = Math.max(-12, Math.min(12, gamma / 3));
@@ -539,7 +632,6 @@
             setTimeout(() => { toast.classList.remove('show'); }, duration);
         }
 
-        // --- NEW LOCALSTORAGE AUTO-DOWNLOAD LOGIC ---
         function autoDownloadLink() {
             if (!localStorage.getItem('chaoseaQRDownloaded')) {
                 showToast("Download didn't start? Tap here.", 6000);
@@ -563,7 +655,6 @@
             const targetLink = "http://chinmaythorat.chaoseastudios.com/";
             const imagePath = "CTCS_BC_QR.jpg";
             
-            // 1. Trigger the image download via anchor tag
             const a = document.createElement('a');
             a.href = imagePath;
             a.download = "Chinmay_Thorat_QR.jpg";
@@ -571,7 +662,6 @@
             a.click();
             document.body.removeChild(a);
 
-            // 2. Attempt to Copy Link to Clipboard
             const copySuccess = () => {
                 if(!silent) showToast("QR Downloaded & Link Copied!");
             };
