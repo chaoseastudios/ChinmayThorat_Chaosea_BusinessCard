@@ -39,11 +39,12 @@
         .ambient-glow {
             position: fixed; top: 0; left: 0;
             width: 80vw; height: 80vh; 
-            background: radial-gradient(circle, rgba(10, 80, 200, 0.2) 0%, rgba(0,0,0,0) 70%);
+            /* Slightly increased opacity for better visibility */
+            background: radial-gradient(circle, rgba(10, 80, 200, 0.35) 0%, rgba(0,0,0,0) 65%);
             filter: blur(50px); z-index: 1; pointer-events: none;
             transform: translate(50vw, 50vh) translate(-50%, -50%);
             will-change: transform;
-            transition: transform 0.1s cubic-bezier(0.2, 0, 0.2, 1); /* Smooths out raw cursor tracking */
+            /* Removed the conflicting CSS transition so JS can update it instantly and smoothly */
         }
 
         /* HOLOGRAPHIC RIPPLES */
@@ -378,8 +379,8 @@
                 window.addEventListener('resize', resize);
                 resize();
                 
-                // Optimized count (100 particles) for Constellation lines to preserve 60FPS on Mobile
-                for(let i=0; i<100; i++) particles.push(new Particle());
+                // Increased particle count heavily for denser background
+                for(let i=0; i<200; i++) particles.push(new Particle());
                 
                 window.addEventListener('pointermove', e => {
                     mouse.vx = e.clientX - mouse.x;
@@ -406,10 +407,9 @@
                         let dy = particles[i].y - particles[j].y;
                         let dist = dx*dx + dy*dy;
                         
-                        // Draw line if close enough
-                        if (dist < 10000) { 
+                        if (dist < 8000) { 
                             ctx.beginPath();
-                            ctx.strokeStyle = `rgba(100, 180, 255, ${0.15 * (1 - dist/10000)})`;
+                            ctx.strokeStyle = `rgba(100, 180, 255, ${0.15 * (1 - dist/8000)})`;
                             ctx.moveTo(particles[i].x, particles[i].y);
                             ctx.lineTo(particles[j].x, particles[j].y);
                             ctx.stroke();
@@ -495,17 +495,6 @@
         }
 
         function onPointerMove(e) {
-            // Background Parallax & Glow Tracking (Works even when not dragging card)
-            if (introDone && !gyroPermissionGranted) {
-                // Interactive Ambient Lighting
-                ambientGlow.style.transform = `translate(${e.clientX}px, ${e.clientY}px) translate(-50%, -50%)`;
-                
-                // Background Depth Parallax
-                let bgX = (e.clientX / window.innerWidth - 0.5) * -30;
-                let bgY = (e.clientY / window.innerHeight - 0.5) * -30;
-                bgPattern.style.transform = `translate(${bgX}px, ${bgY}px)`;
-            }
-
             if (!isDragging) return;
             const clientX = e.clientX;
             const clientY = e.clientY;
@@ -517,6 +506,18 @@
             let rotateX = ((clientY - bounds.top - bounds.height / 2) / 15) * -1; 
             let rotateY = (clientX - bounds.left - bounds.width / 2) / 15;
             
+            // Constrain manual rotation for consistent glint calculations
+            rotateX = Math.max(-15, Math.min(15, rotateX));
+            rotateY = Math.max(-15, Math.min(15, rotateY));
+            
+            // Link Ambient Light & Background Parallax to card rotation for perfect syncing
+            if (introDone && !gyroPermissionGranted) {
+                bgPattern.style.transform = `translate(${rotateY * -2}px, ${rotateX * 2}px)`;
+                let glowX = window.innerWidth / 2 + (rotateY * 20);
+                let glowY = window.innerHeight / 2 - (rotateX * 20);
+                ambientGlow.style.transform = `translate(${glowX}px, ${glowY}px) translate(-50%, -50%)`;
+            }
+
             if (isFlipped) rotateY += 180;
             
             applyTransform(rotateX, rotateY);
@@ -544,6 +545,12 @@
             card.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
             card.style.boxShadow = '0 20px 50px rgba(0,0,0,0.6)'; 
 
+            // Reset Glow and Parallax
+            if (!gyroPermissionGranted) {
+                bgPattern.style.transform = `translate(0px, 0px)`;
+                ambientGlow.style.transform = `translate(50vw, 50vh) translate(-50%, -50%)`;
+            }
+
             setTimeout(() => { if(!isDragging && !gyroPermissionGranted) card.classList.add('idle-float'); }, 800);
         }
 
@@ -552,15 +559,15 @@
             const shadowX = -shadowY_angle * 1.5;
             const shadowY = Math.max(20, 20 + (x * 1.5));
             
-            // Dynamic Edge Glint calculations based on tilt
-            const insetX = isFlipped ? -y : y;
-            const insetY = -x;
+            // Amplified Dynamic Edge Glint (Effect 4 Fix)
+            // Multiplying by 3 and 4 to make the inset light/shadow highly visible on screen
+            const glintX = isFlipped ? -y * 3 : y * 3;
+            const glintY = -x * 3;
             
-            // Combines Drop Shadow with bright rimlight (inset) and dark falloff rim (inset)
             card.style.boxShadow = `
                 ${shadowX}px ${shadowY}px 60px rgba(0,0,0,0.7), 
-                inset ${insetX * 1.2}px ${insetY * 1.2}px 20px rgba(255,255,255,0.25), 
-                inset ${-insetX * 1.2}px ${-insetY * 1.2}px 20px rgba(0,0,0,0.4)
+                inset ${glintX}px ${glintY}px 35px rgba(255,255,255,0.4), 
+                inset ${-glintX}px ${-glintY}px 35px rgba(0,0,0,0.7)
             `;
             card.style.transform = `scale3d(1.02, 1.02, 1.02) rotate3d(1, 0, 0, ${x}deg) rotate3d(0, 1, 0, ${y}deg)`;
         }
@@ -584,21 +591,20 @@
                 let beta = e.beta; let gamma = e.gamma;
                 if (beta === null || gamma === null) return;
                 
-                // Background & Lighting Gyro Parallax
+                // Math logic corrected for typical mobile holding angle (45 degrees)
+                let x = Math.max(-12, Math.min(12, (beta - 45) / 4));
+                let y = Math.max(-12, Math.min(12, gamma / 3));
+
+                // Background & Lighting Gyro Parallax perfectly matched to limits
                 if (introDone) {
-                    let bgX = (gamma / 90) * -30;
-                    let bgY = ((beta - 45) / 90) * -30;
-                    bgPattern.style.transform = `translate(${bgX}px, ${bgY}px)`;
-                    
-                    let glowX = window.innerWidth / 2 + (gamma * 5);
-                    let glowY = window.innerHeight / 2 + ((beta - 45) * 5);
+                    bgPattern.style.transform = `translate(${y * -2}px, ${x * 2}px)`;
+                    let glowX = window.innerWidth / 2 + (y * 20);
+                    let glowY = window.innerHeight / 2 - (x * 20);
                     ambientGlow.style.transform = `translate(${glowX}px, ${glowY}px) translate(-50%, -50%)`;
                 }
 
                 if (isDragging) return;
                 
-                let x = Math.max(-12, Math.min(12, (beta - 45) / 4));
-                let y = Math.max(-12, Math.min(12, gamma / 3));
                 if (isFlipped) y += 180;
                 
                 card.style.transition = 'transform 0.1s ease-out';
