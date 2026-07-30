@@ -340,7 +340,8 @@
             function init() {
                 window.addEventListener('resize', resize);
                 resize();
-                for(let i=0; i<60; i++) particles.push(new Particle());
+                // Increased particle count from 60 to 150
+                for(let i=0; i<150; i++) particles.push(new Particle());
                 
                 window.addEventListener('pointermove', e => {
                     mouse.vx = e.clientX - mouse.x;
@@ -540,11 +541,9 @@
 
         // --- NEW LOCALSTORAGE AUTO-DOWNLOAD LOGIC ---
         function autoDownloadLink() {
-            // Check if the user has already received the auto-download
             if (!localStorage.getItem('chaoseaQRDownloaded')) {
                 showToast("Download didn't start? Tap here.", 6000);
                 downloadCardLink(true); 
-                // Set the flag in the browser memory so it doesn't happen again
                 localStorage.setItem('chaoseaQRDownloaded', 'true');
             }
         }
@@ -562,12 +561,12 @@
 
         function downloadCardLink(silent = false) {
             const targetLink = "http://chinmaythorat.chaoseastudios.com/";
-            const imagePath = "CTCS_BC_QR.png";
+            const imagePath = "CTCS_BC_QR.jpg";
             
             // 1. Trigger the image download via anchor tag
             const a = document.createElement('a');
             a.href = imagePath;
-            a.download = "CTCS_BC_QR.png";
+            a.download = "Chinmay_Thorat_QR.jpg";
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
