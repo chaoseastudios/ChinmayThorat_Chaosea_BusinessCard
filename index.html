@@ -164,7 +164,7 @@
             backface-visibility: hidden; -webkit-backface-visibility: hidden;
         }
 
-        /* INVISIBLE HITBOXES - Significantly tightened to prevent overlap and misclicks */
+        /* INVISIBLE HITBOXES - Tightened bounds */
         .hitbox { position: absolute; cursor: pointer; z-index: 20; display: block; text-decoration: none; }
         
         .hit-name { top: 12%; left: 6%; width: 40%; height: 12%; }
@@ -476,7 +476,7 @@
             autoDownloadLink();
         }
 
-        // --- 3. 3D PHYSICS, LIGHTING, & BACKGROUND PARALLAX ---
+        // --- 3. 3D PHYSICS, LIGHTING, & NATIVE CLICKS ---
         const card = document.getElementById('card');
         const cardWrapper = document.getElementById('card-wrapper');
         const bgPattern = document.getElementById('bg-pattern');
@@ -485,22 +485,22 @@
         let isFlipped = false, isDragging = false, hasDragged = false;
         let startX, startY;
         let gyroPermissionGranted = false;
-        
         let isFlipping = false;
 
         card.addEventListener('pointerdown', onPointerDown);
         window.addEventListener('pointermove', onPointerMove);
         window.addEventListener('pointerup', onPointerUp);
         window.addEventListener('pointercancel', onPointerUp); 
+        
+        // NEW: Native click event exclusively handles flipping
+        card.addEventListener('click', onCardClick);
 
         function onPointerDown(e) {
             if (e.target.closest('.hitbox') || e.target.closest('.social-btn')) return;
             
             isDragging = true; hasDragged = false;
-            
             startX = e.clientX;
             startY = e.clientY;
-            
             cardWrapper.classList.remove('idle-float');
         }
 
@@ -511,8 +511,7 @@
             
             const dist = Math.sqrt(Math.pow(clientX - startX, 2) + Math.pow(clientY - startY, 2));
             
-            // Increased threshold strictly to negate mobile touchscreen jitters
-            if (dist > 25) {
+            if (dist > 15) {
                 if (!hasDragged) {
                     hasDragged = true;
                     card.style.transition = 'none'; 
@@ -527,12 +526,10 @@
                 
                 if (introDone && !gyroPermissionGranted) {
                     bgPattern.style.transform = `translate(${rotateY * -3}px, ${rotateX * 3}px)`;
-                    
                     let pctX = rotateY / 25; 
                     let pctY = rotateX / 25; 
                     let glowX = (window.innerWidth / 2) + (pctX * (window.innerWidth * 0.8));
                     let glowY = (window.innerHeight / 2) - (pctY * (window.innerHeight * 0.8));
-                    
                     ambientGlow.style.transform = `translate(${glowX}px, ${glowY}px) translate(-50%, -50%)`;
                 }
 
@@ -547,24 +544,12 @@
             
             card.style.transition = 'transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
 
-            if (!hasDragged && e.target.closest('#card')) {
-                isFlipped = !isFlipped;
-                
-                isFlipping = true;
-                setTimeout(() => { isFlipping = false; }, 800);
-                
-                AudioEngine.playFlip();
-                if(navigator.vibrate) navigator.vibrate(40);
-                
-                const ui = document.getElementById('interactive-ui');
-                if (isFlipped) ui.classList.add('show');
-                else ui.classList.remove('show');
-            } else {
-                AudioEngine.playTick();
+            // If the user actually dragged, snap the card back. 
+            // If they didn't drag, the native click event takes over for the flip.
+            if (hasDragged) {
+                card.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
+                card.style.boxShadow = '0 20px 50px rgba(0,0,0,0.6)'; 
             }
-
-            card.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
-            card.style.boxShadow = '0 20px 50px rgba(0,0,0,0.6)'; 
 
             if (!gyroPermissionGranted) {
                 bgPattern.style.transform = `translate(0px, 0px)`;
@@ -572,6 +557,26 @@
             }
 
             setTimeout(() => { if(!isDragging && !gyroPermissionGranted) cardWrapper.classList.add('idle-float'); }, 800);
+        }
+
+        function onCardClick(e) {
+            // Ignore if clicking a button/link OR if finishing a drag
+            if (e.target.closest('.hitbox') || e.target.closest('.social-btn')) return;
+            if (hasDragged) return;
+
+            isFlipped = !isFlipped;
+            isFlipping = true;
+            setTimeout(() => { isFlipping = false; }, 800);
+            
+            AudioEngine.playFlip();
+            if(navigator.vibrate) navigator.vibrate(40);
+            
+            const ui = document.getElementById('interactive-ui');
+            if (isFlipped) ui.classList.add('show');
+            else ui.classList.remove('show');
+
+            card.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
+            card.style.boxShadow = '0 20px 50px rgba(0,0,0,0.6)'; 
         }
 
         function applyTransform(x, y) {
@@ -604,8 +609,9 @@
                 let beta = e.beta; let gamma = e.gamma;
                 if (beta === null || gamma === null) return;
                 
-                let x = Math.max(-25, Math.min(25, (beta - 45) / 1.875));
-                let y = Math.max(-25, Math.min(25, gamma / 1.875));
+                // Gyroscope sensitivity reduced by tweaking divisor up to 3.0
+                let x = Math.max(-25, Math.min(25, (beta - 45) / 3));
+                let y = Math.max(-25, Math.min(25, gamma / 3));
 
                 if (introDone) {
                     bgPattern.style.transform = `translate(${y * -2}px, ${x * 2}px)`;
