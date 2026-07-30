@@ -22,7 +22,6 @@
             position: fixed; 
             touch-action: none; 
             overscroll-behavior: none;
-            cursor: pointer; 
         }
 
         /* BACKGROUND ELEMENTS */
@@ -214,7 +213,7 @@
         #toast.show { bottom: 30px; opacity: 1; pointer-events: auto; }
     </style>
 </head>
-<body onclick="void(0)">
+<body>
 
     <!-- Environment -->
     <div class="bg-pattern" id="bg-pattern"></div>
@@ -236,6 +235,7 @@
     <!-- 3D Card Area -->
     <div id="card-container">
         <div id="card-wrapper" class="idle-float">
+            <!-- Inner card handles 3D physics -->
             <div class="card-inner" id="card">
                 <!-- FRONT -->
                 <div class="card-face card-front"></div>
@@ -304,14 +304,14 @@
             };
         })();
 
-        // One-time global listener securely unlocks audio/sensors without triggering a flip
+        // Global unlock for Audio and Gyroscope security requirements
         window.addEventListener('click', function initSensors() {
             AudioEngine.init();
             requestGyroPermission();
             window.removeEventListener('click', initSensors);
         }, { once: true });
 
-        // Touch Ripples anywhere
+        // Ripple Effect on any touch
         window.addEventListener('pointerdown', (e) => { 
             const rippleContainer = document.getElementById('ripple-container');
             if (rippleContainer) {
@@ -482,7 +482,7 @@
             autoDownloadLink();
         }
 
-        // --- 3. 3D PHYSICS, LIGHTING, & SMART THRESHOLDS ---
+        // --- 3. 3D PHYSICS & CLEAN EVENT LOGIC ---
         const card = document.getElementById('card');
         const cardWrapper = document.getElementById('card-wrapper');
         const bgPattern = document.getElementById('bg-pattern');
@@ -493,14 +493,9 @@
         let gyroPermissionGranted = false;
         let isFlipping = false;
 
-        // Interaction bindings exclusively locked to the Card
-        card.addEventListener('pointerdown', onCardPointerDown);
-        window.addEventListener('pointermove', onPointerMove);
-        window.addEventListener('pointerup', onPointerUp);
-        window.addEventListener('pointercancel', onPointerUp); 
-
-        function onCardPointerDown(e) {
-            // Hotspot filter
+        // Pointerdown bound STRICTLY to the card so holding the card works
+        card.addEventListener('pointerdown', (e) => {
+            // Ignore if clicking a button
             if (e.target.closest('.hitbox') || e.target.closest('.social-btn')) return;
             
             isDragging = true; 
@@ -508,21 +503,17 @@
             startX = e.clientX;
             startY = e.clientY;
             cardWrapper.classList.remove('idle-float');
-        }
+            card.style.transition = 'none'; // Lock to finger immediately
+        });
 
-        function onPointerMove(e) {
-            // Unbound parallax tracking for background effects
-            if (introDone && !gyroPermissionGranted) {
-                let rotateX = ((e.clientY - window.innerHeight / 2) / 20) * -1; 
-                let rotateY = ((e.clientX - window.innerWidth / 2) / 20);
-                
-                rotateX = Math.max(-25, Math.min(25, rotateX));
-                rotateY = Math.max(-25, Math.min(25, rotateY));
-
-                bgPattern.style.transform = `translate(${rotateY * -3}px, ${rotateX * 3}px)`;
-                
+        // Pointermove and Up bound to window so you don't lose the drag if your finger slips off
+        window.addEventListener('pointermove', (e) => {
+            // Ambient mouse parallax (only if no gyro)
+            if (introDone && !gyroPermissionGranted && e.pointerType === 'mouse') {
                 let pctX = e.clientX / window.innerWidth;
                 let pctY = e.clientY / window.innerHeight;
+                bgPattern.style.transform = `translate(${(pctX - 0.5) * -30}px, ${(pctY - 0.5) * -30}px)`;
+                
                 let glowX = (window.innerWidth / 2) + ((pctX - 0.5) * window.innerWidth * 0.8);
                 let glowY = (window.innerHeight / 2) + ((pctY - 0.5) * window.innerHeight * 0.8);
                 ambientGlow.style.transform = `translate(${glowX}px, ${glowY}px) translate(-50%, -50%)`;
@@ -530,39 +521,35 @@
 
             if (!isDragging) return;
             
-            const dragDist = Math.sqrt(Math.pow(e.clientX - startX, 2) + Math.pow(e.clientY - startY, 2));
+            const dist = Math.sqrt(Math.pow(e.clientX - startX, 2) + Math.pow(e.clientY - startY, 2));
             
-            // SMART THRESHOLD: Evaluates if it is a rigid mouse or a soft touch pointer
-            let isPrecise = (e.pointerType === 'mouse' || e.pointerType === 'pen');
-            let dragThreshold = isPrecise ? 5 : 25; 
+            // CLEAN THRESHOLD: 5px for mouse, 15px for touch to prevent thumb-roll taps from counting as drags
+            let dragThreshold = (e.pointerType === 'mouse' || e.pointerType === 'pen') ? 5 : 15; 
             
-            // Only engage 3D rotation if the hardware-specific threshold is crossed
-            if (dragDist > dragThreshold) {
-                if (!hasDragged) {
-                    hasDragged = true;
-                    card.style.transition = 'none'; 
-                }
-
-                const bounds = card.getBoundingClientRect();
-                let rotateX = ((e.clientY - bounds.top - bounds.height / 2) / 10) * -1; 
-                let rotateY = ((e.clientX - bounds.left - bounds.width / 2) / 10);
-                
-                rotateX = Math.max(-25, Math.min(25, rotateX));
-                rotateY = Math.max(-25, Math.min(25, rotateY));
-                
-                if (isFlipped) rotateY += 180;
-                applyTransform(rotateX, rotateY);
+            if (dist > dragThreshold) {
+                hasDragged = true;
             }
-        }
 
-        function onPointerUp(e) {
+            // Drag to Orbit Logic
+            const bounds = card.getBoundingClientRect();
+            let rotateX = ((e.clientY - bounds.top - bounds.height / 2) / 10) * -1; 
+            let rotateY = ((e.clientX - bounds.left - bounds.width / 2) / 10);
+            
+            rotateX = Math.max(-25, Math.min(25, rotateX));
+            rotateY = Math.max(-25, Math.min(25, rotateY));
+            
+            if (isFlipped) rotateY += 180;
+            applyTransform(rotateX, rotateY);
+        });
+
+        window.addEventListener('pointerup', (e) => {
+            // Also listen to pointercancel
             if (!isDragging) return;
             isDragging = false;
             
             card.style.transition = 'transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
 
-            // Clean Flip Execution: Exclusively flips if the card was tapped without triggering a drag.
-            // Target checks are eliminated to permanently fix Android's target-slip bug.
+            // If it wasn't a drag, it was a TAP!
             if (!hasDragged && introDone) {
                 isFlipped = !isFlipped;
                 isFlipping = true;
@@ -576,6 +563,7 @@
                 else ui.classList.remove('show');
             }
 
+            // Regardless of tap or drag, smoothly snap card to final resting place
             card.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
             card.style.boxShadow = '0 20px 50px rgba(0,0,0,0.6)'; 
 
@@ -585,7 +573,11 @@
             }
 
             setTimeout(() => { if(!isDragging && !gyroPermissionGranted) cardWrapper.classList.add('idle-float'); }, 800);
-        }
+        });
+        
+        window.addEventListener('pointercancel', (e) => {
+            if (isDragging) window.dispatchEvent(new PointerEvent('pointerup'));
+        });
 
         function applyTransform(x, y) {
             let shadowY_angle = isFlipped ? y - 180 : y;
@@ -598,7 +590,7 @@
 
         // --- 4. GYROSCOPE (MOBILE PHONES ONLY) ---
         function requestGyroPermission() {
-            // STRICT REGEX: Authorizes gyro strictly for actual smartphones, filtering out PCs and iPads
+            // Excludes Desktop PCs, Macs, and iPads. Keeps gyro enabled ONLY for Mobile Phones.
             const isMobilePhone = /Android.*Mobile|iPhone|iPod/i.test(navigator.userAgent);
             if (!isMobilePhone) return;
 
