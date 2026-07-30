@@ -7,6 +7,8 @@
     <style>
         /* BASE & ENVIRONMENT */
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        
+        /* iOS FIX: cursor pointer helps Safari recognize the body as clickable */
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #050a14; 
@@ -22,6 +24,7 @@
             position: fixed; 
             touch-action: none; 
             overscroll-behavior: none;
+            cursor: pointer; 
         }
 
         /* BACKGROUND ELEMENTS */
@@ -77,6 +80,7 @@
             background: #000; z-index: 9999;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: default;
         }
         
         .intro-logo-container {
@@ -212,7 +216,8 @@
         #toast.show { bottom: 30px; opacity: 1; pointer-events: auto; }
     </style>
 </head>
-<body>
+<!-- iOS FIX: Dummy onclick forces Safari to treat the body as a tap zone -->
+<body onclick="void(0)">
 
     <!-- Environment -->
     <div class="bg-pattern" id="bg-pattern"></div>
@@ -471,20 +476,15 @@
         let gyroPermissionGranted = false;
         let isFlipping = false;
 
-        // BINDING TO THE ENTIRE WINDOW SO TAPPING ANYWHERE REGISTERS
         window.addEventListener('pointerdown', onPointerDown);
         window.addEventListener('pointermove', onPointerMove);
         window.addEventListener('pointerup', onPointerUp);
         window.addEventListener('pointercancel', onPointerUp); 
         
-        // INTERCEPT NATIVE CLICKS AT THE WINDOW LEVEL
         window.addEventListener('click', onScreenClick, { capture: true });
 
         function onPointerDown(e) {
-            AudioEngine.init(); 
-            requestGyroPermission();
-
-            // Ripple Effect
+            // Spawn Holographic Ripple
             const rippleContainer = document.getElementById('ripple-container');
             if (rippleContainer) {
                 const ripple = document.createElement('div');
@@ -495,9 +495,9 @@
                 setTimeout(() => { if (ripple.parentNode) ripple.parentNode.removeChild(ripple); }, 800);
             }
 
-            // We no longer block dragging if you start on a hitbox. Drag physics run anywhere.
-            isDragging = true; 
-            hasDragged = false;
+            if (e.target.closest('.hitbox') || e.target.closest('.social-btn')) return;
+            
+            isDragging = true; hasDragged = false;
             startX = e.clientX;
             startY = e.clientY;
             cardWrapper.classList.remove('idle-float');
@@ -510,10 +510,9 @@
             
             const dist = Math.sqrt(Math.pow(clientX - startX, 2) + Math.pow(clientY - startY, 2));
             
-            if (dist > 15) {
+            if (dist > 25) {
                 if (!hasDragged) {
                     hasDragged = true;
-                    cancelPress(); // Intercept long-presses if the user intended to drag instead
                     card.style.transition = 'none'; 
                 }
 
@@ -544,7 +543,6 @@
             
             card.style.transition = 'transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
 
-            // If dragged, let physics snap back. Click event is completely ignored.
             if (hasDragged) {
                 card.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
                 card.style.boxShadow = '0 20px 50px rgba(0,0,0,0.6)'; 
@@ -558,20 +556,21 @@
             setTimeout(() => { if(!isDragging && !gyroPermissionGranted) cardWrapper.classList.add('idle-float'); }, 800);
         }
 
+        // iOS FIX: Initialize Sensors strictly on the native 'click' event
         function onScreenClick(e) {
-            // SCENARIO 1: If the user just dragged to orbit the card, BLOCK the click from opening any links!
+            AudioEngine.init();
+            requestGyroPermission();
+
             if (hasDragged) {
                 e.preventDefault();
                 e.stopPropagation();
                 return;
             }
 
-            // SCENARIO 2: It was a clean tap on a button/link. Let it open normally. DO NOT flip.
             if (e.target.closest('.hitbox') || e.target.closest('.social-btn') || e.target.closest('.glass-btn') || e.target.closest('#toast')) {
                 return;
             }
 
-            // SCENARIO 3: Clean tap on empty screen or card body. Execute the FLIP!
             if (!introDone) return; 
 
             isFlipped = !isFlipped;
@@ -619,7 +618,6 @@
                 let beta = e.beta; let gamma = e.gamma;
                 if (beta === null || gamma === null) return;
                 
-                // Divisor changed to 1.78 for exactly +5% sensitivity boost
                 let x = Math.max(-25, Math.min(25, (beta - 45) / 1.78));
                 let y = Math.max(-25, Math.min(25, gamma / 1.78));
 
