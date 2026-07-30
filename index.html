@@ -388,8 +388,8 @@
                 window.addEventListener('resize', resize);
                 resize();
                 
-                // Massive Increase: 350 Particles for dense web effect
-                for(let i=0; i<350; i++) particles.push(new Particle());
+                // Massive Increase: 333 Particles for dense web effect
+                for(let i=0; i<333; i++) particles.push(new Particle());
                 
                 window.addEventListener('pointermove', e => {
                     mouse.vx = e.clientX - mouse.x;
@@ -679,11 +679,11 @@
 
         function downloadCardLink(silent = false) {
             const targetLink = "http://chinmaythorat.chaoseastudios.com/";
-            const imagePath = "CTCS_BC_QR.jpg";
+            const imagePath = "CTCS_BC_QR.png";
             
             const a = document.createElement('a');
             a.href = imagePath;
-            a.download = "Chinmay_Thorat_QR.jpg";
+            a.download = "CTCS_BC_QR.png";
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
