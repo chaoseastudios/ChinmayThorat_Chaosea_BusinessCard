@@ -135,7 +135,7 @@
             transform-style: preserve-3d; 
             -webkit-transform-style: preserve-3d; 
             transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            cursor: pointer; /* Ensures mobile browsers recognize it as fully tappable */
+            cursor: pointer; 
             box-shadow: 0 20px 50px rgba(0,0,0,0.6); 
             border-radius: 12px;
         }
@@ -166,7 +166,7 @@
             backface-visibility: hidden; -webkit-backface-visibility: hidden;
         }
 
-        /* INVISIBLE HITBOXES - Tightened bounds */
+        /* INVISIBLE HITBOXES */
         .hitbox { position: absolute; cursor: pointer; z-index: 20; display: block; text-decoration: none; }
         
         .hit-name { top: 12%; left: 6%; width: 40%; height: 12%; }
@@ -500,6 +500,7 @@
         window.addEventListener('pointercancel', onPointerUp); 
 
         function onCardPointerDown(e) {
+            // Hitbox guard
             if (e.target.closest('.hitbox') || e.target.closest('.social-btn')) return;
             
             isDragging = true; 
@@ -558,11 +559,13 @@
             
             card.style.transition = 'transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
 
-            // Time vs. Distance algorithm: Allows for natural thumb-rolling on edges without canceling the tap
+            // Time vs. Distance algorithm
             let timeElapsed = Date.now() - startTime;
-            let isTap = (dragDist < 15) || (timeElapsed < 300 && dragDist < 40);
+            let isTap = (dragDist < 20) || (timeElapsed < 300 && dragDist < 50);
 
-            if (isTap && e.target.closest('#card') && !e.target.closest('.hitbox') && !e.target.closest('.social-btn')) {
+            // KEY FIX: If it started as a dragging gesture on the card, we only check if it was a tap.
+            // We NO LONGER check e.target to verify the exit point, ignoring Gyroscope slipping!
+            if (isTap) {
                 if (introDone) {
                     isFlipped = !isFlipped;
                     isFlipping = true;
