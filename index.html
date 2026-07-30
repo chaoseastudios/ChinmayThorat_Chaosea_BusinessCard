@@ -106,8 +106,8 @@
         /* 3D CARD CONTAINER - Scaled up for better visibility */
         #card-container {
             position: relative; z-index: 10;
-            width: 95vw; /* Increased size on mobile */
-            max-width: 750px; /* Increased size on desktop */
+            width: 95vw; 
+            max-width: 750px; 
             aspect-ratio: 16 / 9;
             perspective: 1500px; opacity: 0; transform: translateY(20px) scale(0.95);
             transition: opacity 1.5s ease, transform 1.5s cubic-bezier(0.16, 1, 0.3, 1);
@@ -164,22 +164,6 @@
             content: ''; position: absolute; width: 100%; height: 100%;
             border-radius: 12px; background: #222; transform: translateZ(0px); 
             backface-visibility: hidden; -webkit-backface-visibility: hidden;
-        }
-
-        /* BLURRED, NARROW METALLIC LIGHT SWEEP ON THE CARD */
-        .card-face::after {
-            content: ''; position: absolute; top: -150%; left: -150%; width: 300%; height: 300%;
-            background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%);
-            width: 30px; 
-            filter: blur(8px); 
-            transform: rotate(45deg);
-            pointer-events: none;
-            animation: cardShine 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-            mix-blend-mode: overlay;
-        }
-        @keyframes cardShine {
-            0%, 60% { transform: rotate(45deg) translateY(-100%) translateX(-100%); }
-            100% { transform: rotate(45deg) translateY(100%) translateX(100%); }
         }
 
         /* INVISIBLE HITBOXES */
@@ -327,7 +311,6 @@
             AudioEngine.init(); 
             requestGyroPermission();
 
-            // Spawn Holographic Ripple
             const rippleContainer = document.getElementById('ripple-container');
             if (rippleContainer) {
                 const ripple = document.createElement('div');
@@ -363,7 +346,6 @@
                     this.x = Math.random() * width;
                     this.y = height + Math.random() * 100;
                     
-                    // Scale particle size based on mobile viewport
                     let baseSize = Math.random() * 1.5 + 0.5;
                     this.size = width < 768 ? baseSize * 0.6 : baseSize;
                     
@@ -446,7 +428,6 @@
             const hour = new Date().getHours();
             let greeting = '';
             
-            // Precise time range logic
             if (hour >= 4 && hour < 12) {
                 greeting = 'Good Morning';
             } else if (hour >= 12 && hour < 17) {
@@ -508,6 +489,9 @@
         let isFlipped = false, isDragging = false, hasDragged = false;
         let startX, startY;
         let gyroPermissionGranted = false;
+        
+        // FLIP ANIMATION LOCK
+        let isFlipping = false;
 
         card.addEventListener('pointerdown', onPointerDown);
         window.addEventListener('pointermove', onPointerMove);
@@ -520,7 +504,6 @@
             startX = e.clientX;
             startY = e.clientY;
             
-            // Toggle wrapper animation instead of inline CSS
             cardWrapper.classList.remove('idle-float');
             card.style.transition = 'none'; 
         }
@@ -531,7 +514,9 @@
             const clientY = e.clientY;
             
             const dist = Math.sqrt(Math.pow(clientX - startX, 2) + Math.pow(clientY - startY, 2));
-            if (dist > 35) hasDragged = true; 
+            
+            // Restore High Sensitivity Tap (15px threshold allows fat-finger wiggle but registers taps easily)
+            if (dist > 15) hasDragged = true; 
 
             const bounds = card.getBoundingClientRect();
             let rotateX = ((clientY - bounds.top - bounds.height / 2) / 10) * -1; 
@@ -564,6 +549,11 @@
 
             if (!hasDragged && e.target.closest('#card') && !isInteractiveElement) {
                 isFlipped = !isFlipped;
+                
+                // LOCK THE GYRO during the 0.8s flip animation so it doesn't get interrupted
+                isFlipping = true;
+                setTimeout(() => { isFlipping = false; }, 800);
+                
                 AudioEngine.playFlip();
                 if(navigator.vibrate) navigator.vibrate(40);
                 
@@ -582,7 +572,6 @@
                 ambientGlow.style.transform = `translate(50vw, 50vh) translate(-50%, -50%)`;
             }
 
-            // Restore the float animation to the wrapper securely
             setTimeout(() => { if(!isDragging && !gyroPermissionGranted) cardWrapper.classList.add('idle-float'); }, 800);
         }
 
@@ -611,6 +600,9 @@
             if (gyroPermissionGranted) return;
             gyroPermissionGranted = true;
             window.addEventListener('deviceorientation', (e) => {
+                // ABORT GYRO UPDATES if the user is dragging OR if the card is actively running its 0.8s flip animation
+                if (isDragging || isFlipping) return;
+                
                 let beta = e.beta; let gamma = e.gamma;
                 if (beta === null || gamma === null) return;
                 
@@ -627,8 +619,6 @@
                     
                     ambientGlow.style.transform = `translate(${glowX}px, ${glowY}px) translate(-50%, -50%)`;
                 }
-
-                if (isDragging) return;
                 
                 if (isFlipped) y += 180;
                 card.style.transition = 'transform 0.1s ease-out';
