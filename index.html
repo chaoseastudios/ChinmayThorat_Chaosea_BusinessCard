@@ -164,13 +164,13 @@
             backface-visibility: hidden; -webkit-backface-visibility: hidden;
         }
 
-        /* INVISIBLE HITBOXES */
+        /* INVISIBLE HITBOXES - Significantly tightened to prevent overlap and misclicks */
         .hitbox { position: absolute; cursor: pointer; z-index: 20; display: block; text-decoration: none; }
         
-        .hit-name { top: 10%; left: 5%; width: 50%; height: 20%; }
-        .hit-phone { top: 66%; left: 5%; width: 45%; height: 10%; }
-        .hit-email { top: 76%; left: 5%; width: 60%; height: 10%; }
-        .hit-web { top: 86%; left: 5%; width: 60%; height: 10%; }
+        .hit-name { top: 12%; left: 6%; width: 40%; height: 12%; }
+        .hit-phone { top: 68%; left: 6%; width: 35%; height: 6%; }
+        .hit-email { top: 78%; left: 6%; width: 45%; height: 6%; }
+        .hit-web { top: 88%; left: 6%; width: 45%; height: 6%; }
 
         /* SOCIAL GLASS BUTTONS */
         .social-btn {
@@ -494,9 +494,6 @@
         window.addEventListener('pointercancel', onPointerUp); 
 
         function onPointerDown(e) {
-            // FIX 1: INSTANT HOTSPOT BYPASS
-            // If the user touches a button/link, the 3D physics engine ignores it entirely.
-            // This guarantees the browser instantly triggers the native click/action.
             if (e.target.closest('.hitbox') || e.target.closest('.social-btn')) return;
             
             isDragging = true; hasDragged = false;
@@ -505,7 +502,6 @@
             startY = e.clientY;
             
             cardWrapper.classList.remove('idle-float');
-            // FIX 2: Do NOT kill the transition here anymore. Let it rest until a drag is confirmed.
         }
 
         function onPointerMove(e) {
@@ -515,11 +511,10 @@
             
             const dist = Math.sqrt(Math.pow(clientX - startX, 2) + Math.pow(clientY - startY, 2));
             
-            if (dist > 15) {
+            // Increased threshold strictly to negate mobile touchscreen jitters
+            if (dist > 25) {
                 if (!hasDragged) {
                     hasDragged = true;
-                    // FIX 2 (Cont.): Only kill the CSS transition if they drag more than 15 pixels.
-                    // This stops the micro-stutter when tapping!
                     card.style.transition = 'none'; 
                 }
 
@@ -552,7 +547,6 @@
             
             card.style.transition = 'transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
 
-            // Because of our Bypass, we no longer need the "!isInteractiveElement" check here!
             if (!hasDragged && e.target.closest('#card')) {
                 isFlipped = !isFlipped;
                 
