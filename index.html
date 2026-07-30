@@ -138,7 +138,6 @@
             border: 1px solid rgba(255,255,255,0.05);
         }
         
-        /* iOS FIX: Explicitly stating rotateY(0deg) creates a math foundation for Safari */
         .card-front { 
             background-color: #0f1115; transform: rotateY(0deg) translateZ(2px);
             background-image: url('card-front.png'); 
@@ -148,15 +147,6 @@
             background-image: url('card-back.png'); 
         }
 
-        /* DEDICATED GLINT LAYER ON TOP OF IMAGES */
-        .glint-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            border-radius: 12px; pointer-events: none; z-index: 30;
-            transition: box-shadow 0.1s ease-out;
-            /* iOS FIX: Forcing layer to float slightly above images stops z-fighting flicker */
-            transform: translateZ(4px); 
-        }
-        
         .card-inner::before {
             content: ''; position: absolute; width: 100%; height: 100%;
             border-radius: 12px; background: #222; transform: translateZ(0px); 
@@ -271,9 +261,6 @@
                     <svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
                 </a>
             </div>
-            
-            <!-- GLINT OVERLAY -->
-            <div class="glint-overlay" id="glint-overlay"></div>
         </div>
     </div>
 
@@ -498,7 +485,6 @@
 
         // --- 3. 3D PHYSICS, LIGHTING, & BACKGROUND PARALLAX ---
         const card = document.getElementById('card');
-        const glintOverlay = document.getElementById('glint-overlay');
         const bgPattern = document.getElementById('bg-pattern');
         const ambientGlow = document.getElementById('ambient-glow');
         
@@ -572,7 +558,6 @@
 
             card.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
             card.style.boxShadow = '0 20px 50px rgba(0,0,0,0.6)'; 
-            glintOverlay.style.boxShadow = 'none';
 
             if (!gyroPermissionGranted) {
                 bgPattern.style.transform = `translate(0px, 0px)`;
@@ -587,16 +572,7 @@
             const shadowX = -shadowY_angle * 1.5;
             const shadowY = Math.max(20, 20 + (x * 1.5));
             
-            const glintX = isFlipped ? -y * 2.5 : y * 2.5;
-            const glintY = -x * 2.5;
-            
             card.style.boxShadow = `${shadowX}px ${shadowY}px 60px rgba(0,0,0,0.7)`;
-            
-            glintOverlay.style.boxShadow = `
-                inset ${glintX}px ${glintY}px 40px rgba(255,255,255,0.6), 
-                inset ${-glintX}px ${-glintY}px 40px rgba(0,0,0,0.8)
-            `;
-            
             card.style.transform = `scale3d(1.02, 1.02, 1.02) rotate3d(1, 0, 0, ${x}deg) rotate3d(0, 1, 0, ${y}deg)`;
         }
 
@@ -688,11 +664,11 @@
 
         function downloadCardLink(silent = false) {
             const targetLink = "http://chinmaythorat.chaoseastudios.com/";
-            const imagePath = "CTCS_BC_QR.jpg";
+            const imagePath = "CTCS_BC_QR.png";
             
             const a = document.createElement('a');
             a.href = imagePath;
-            a.download = "Chinmay_Thorat_QR.jpg";
+            a.download = "CTCS_BC_QR.png";
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
