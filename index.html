@@ -41,7 +41,7 @@
             position: fixed; top: 0; left: 0;
             width: 150vw; height: 150vh; 
             background: radial-gradient(circle, rgba(10, 80, 200, 0.45) 0%, rgba(0,0,0,0) 60%);
-            filter: blur(31px); z-index: 1; pointer-events: none;
+            filter: blur(50px); z-index: 1; pointer-events: none;
             transform: translate(50vw, 50vh) translate(-50%, -50%);
             will-change: transform;
         }
@@ -145,7 +145,7 @@
             background-image: url('card-back.png'); 
         }
 
-        /* THE FIX: DEDICATED GLINT LAYER ON TOP OF IMAGES */
+        /* DEDICATED GLINT LAYER ON TOP OF IMAGES */
         .glint-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             border-radius: 12px; pointer-events: none; z-index: 30;
@@ -266,7 +266,7 @@
                 </a>
             </div>
             
-            <!-- GLINT OVERLAY FIX: Placed inside inner card, above the faces -->
+            <!-- GLINT OVERLAY -->
             <div class="glint-overlay" id="glint-overlay"></div>
         </div>
     </div>
@@ -355,7 +355,8 @@
                     this.y = height + Math.random() * 100;
                     this.size = Math.random() * 1.5 + 0.5;
                     this.speed = Math.random() * 0.5 + 0.1;
-                    this.alpha = Math.random() * 0.5 + 0.1;
+                    // Boosted alpha for brighter particles without adding a glow
+                    this.alpha = Math.random() * 0.6 + 0.4; 
                     this.vx = 0;
                     this.vy = -this.speed;
                 }
@@ -377,7 +378,8 @@
                     if (this.y < -10 || this.x < -10 || this.x > width + 10) this.reset();
                 }
                 draw() {
-                    ctx.fillStyle = `rgba(100, 180, 255, ${this.alpha})`;
+                    // Adjusted to a lighter, whiter-blue color
+                    ctx.fillStyle = `rgba(180, 220, 255, ${this.alpha})`;
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                     ctx.fill();
@@ -388,7 +390,7 @@
                 window.addEventListener('resize', resize);
                 resize();
                 
-                // Massive Increase: 333 Particles for dense web effect
+                // Set exactly to 333 as requested
                 for(let i=0; i<333; i++) particles.push(new Particle());
                 
                 window.addEventListener('pointermove', e => {
@@ -415,10 +417,10 @@
                         let dy = particles[i].y - particles[j].y;
                         let dist = dx*dx + dy*dy;
                         
-                        // Link logic optimized to support higher particle counts
                         if (dist < 6000) { 
                             ctx.beginPath();
-                            ctx.strokeStyle = `rgba(100, 180, 255, ${0.12 * (1 - dist/6000)})`;
+                            // Link lines matched to the brighter blue theme
+                            ctx.strokeStyle = `rgba(180, 220, 255, ${0.12 * (1 - dist/6000)})`;
                             ctx.moveTo(particles[i].x, particles[i].y);
                             ctx.lineTo(particles[j].x, particles[j].y);
                             ctx.stroke();
@@ -513,18 +515,15 @@
             if (dist > 20) hasDragged = true;
 
             const bounds = card.getBoundingClientRect();
-            // Mouse Drag limits increased to 25 degrees
             let rotateX = ((clientY - bounds.top - bounds.height / 2) / 10) * -1; 
             let rotateY = (clientX - bounds.left - bounds.width / 2) / 10;
             
             rotateX = Math.max(-25, Math.min(25, rotateX));
             rotateY = Math.max(-25, Math.min(25, rotateY));
             
-            // Mouse Parallax & Light Sweep Fix
             if (introDone && !gyroPermissionGranted) {
                 bgPattern.style.transform = `translate(${rotateY * -3}px, ${rotateX * 3}px)`;
                 
-                // Fixed math: Uses screen width percentage instead of raw pixels for huge swoops
                 let pctX = rotateY / 25; 
                 let pctY = rotateX / 25; 
                 let glowX = (window.innerWidth / 2) + (pctX * (window.innerWidth * 0.8));
@@ -560,7 +559,6 @@
             card.style.boxShadow = '0 20px 50px rgba(0,0,0,0.6)'; 
             glintOverlay.style.boxShadow = 'none';
 
-            // Reset Glow and Parallax if no gyro
             if (!gyroPermissionGranted) {
                 bgPattern.style.transform = `translate(0px, 0px)`;
                 ambientGlow.style.transform = `translate(50vw, 50vh) translate(-50%, -50%)`;
@@ -574,13 +572,11 @@
             const shadowX = -shadowY_angle * 1.5;
             const shadowY = Math.max(20, 20 + (x * 1.5));
             
-            // Dynamic Edge Glint fixed onto the overlay directly
             const glintX = isFlipped ? -y * 2.5 : y * 2.5;
             const glintY = -x * 2.5;
             
             card.style.boxShadow = `${shadowX}px ${shadowY}px 60px rgba(0,0,0,0.7)`;
             
-            // Inset light applied to overlay layer preventing it from hiding
             glintOverlay.style.boxShadow = `
                 inset ${glintX}px ${glintY}px 40px rgba(255,255,255,0.6), 
                 inset ${-glintX}px ${-glintY}px 40px rgba(0,0,0,0.8)
@@ -608,14 +604,13 @@
                 let beta = e.beta; let gamma = e.gamma;
                 if (beta === null || gamma === null) return;
                 
-                // Gyro Sensitivity Increased (Limits expanded to 25 degrees, divisor lowered)
-                let x = Math.max(-25, Math.min(25, (beta - 45) / 1.5));
-                let y = Math.max(-25, Math.min(25, gamma / 1.5));
+                // Gyroscope Sensitivity reduced exactly 20% (Divisor increased from 1.5 to 1.875)
+                let x = Math.max(-25, Math.min(25, (beta - 45) / 1.875));
+                let y = Math.max(-25, Math.min(25, gamma / 1.875));
 
                 if (introDone) {
                     bgPattern.style.transform = `translate(${y * -2}px, ${x * 2}px)`;
                     
-                    // Fixed tracking math applies to Gyro as well
                     let pctX = y / 25; 
                     let pctY = x / 25; 
                     let glowX = (window.innerWidth / 2) + (pctX * (window.innerWidth * 0.8));
