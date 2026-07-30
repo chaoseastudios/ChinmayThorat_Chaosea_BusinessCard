@@ -302,22 +302,6 @@
             };
         })();
 
-        // Tap Ripples & Permissions
-        window.addEventListener('pointerdown', (e) => { 
-            AudioEngine.init(); 
-            requestGyroPermission();
-
-            const rippleContainer = document.getElementById('ripple-container');
-            if (rippleContainer) {
-                const ripple = document.createElement('div');
-                ripple.className = 'ripple';
-                ripple.style.left = `${e.clientX}px`;
-                ripple.style.top = `${e.clientY}px`;
-                rippleContainer.appendChild(ripple);
-                setTimeout(() => { if (ripple.parentNode) ripple.parentNode.removeChild(ripple); }, 800);
-            }
-        });
-
         // --- 1. STATE LOGIC & CONSTELLATION PARTICLE ENGINE ---
         let introDone = false;
         
@@ -487,18 +471,33 @@
         let gyroPermissionGranted = false;
         let isFlipping = false;
 
-        card.addEventListener('pointerdown', onPointerDown);
+        // BINDING TO THE ENTIRE WINDOW SO TAPPING ANYWHERE REGISTERS
+        window.addEventListener('pointerdown', onPointerDown);
         window.addEventListener('pointermove', onPointerMove);
         window.addEventListener('pointerup', onPointerUp);
         window.addEventListener('pointercancel', onPointerUp); 
         
-        // NEW: Native click event exclusively handles flipping
-        card.addEventListener('click', onCardClick);
+        // INTERCEPT NATIVE CLICKS AT THE WINDOW LEVEL
+        window.addEventListener('click', onScreenClick, { capture: true });
 
         function onPointerDown(e) {
-            if (e.target.closest('.hitbox') || e.target.closest('.social-btn')) return;
-            
-            isDragging = true; hasDragged = false;
+            AudioEngine.init(); 
+            requestGyroPermission();
+
+            // Ripple Effect
+            const rippleContainer = document.getElementById('ripple-container');
+            if (rippleContainer) {
+                const ripple = document.createElement('div');
+                ripple.className = 'ripple';
+                ripple.style.left = `${e.clientX}px`;
+                ripple.style.top = `${e.clientY}px`;
+                rippleContainer.appendChild(ripple);
+                setTimeout(() => { if (ripple.parentNode) ripple.parentNode.removeChild(ripple); }, 800);
+            }
+
+            // We no longer block dragging if you start on a hitbox. Drag physics run anywhere.
+            isDragging = true; 
+            hasDragged = false;
             startX = e.clientX;
             startY = e.clientY;
             cardWrapper.classList.remove('idle-float');
@@ -514,6 +513,7 @@
             if (dist > 15) {
                 if (!hasDragged) {
                     hasDragged = true;
+                    cancelPress(); // Intercept long-presses if the user intended to drag instead
                     card.style.transition = 'none'; 
                 }
 
@@ -544,8 +544,7 @@
             
             card.style.transition = 'transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
 
-            // If the user actually dragged, snap the card back. 
-            // If they didn't drag, the native click event takes over for the flip.
+            // If dragged, let physics snap back. Click event is completely ignored.
             if (hasDragged) {
                 card.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
                 card.style.boxShadow = '0 20px 50px rgba(0,0,0,0.6)'; 
@@ -559,10 +558,21 @@
             setTimeout(() => { if(!isDragging && !gyroPermissionGranted) cardWrapper.classList.add('idle-float'); }, 800);
         }
 
-        function onCardClick(e) {
-            // Ignore if clicking a button/link OR if finishing a drag
-            if (e.target.closest('.hitbox') || e.target.closest('.social-btn')) return;
-            if (hasDragged) return;
+        function onScreenClick(e) {
+            // SCENARIO 1: If the user just dragged to orbit the card, BLOCK the click from opening any links!
+            if (hasDragged) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+
+            // SCENARIO 2: It was a clean tap on a button/link. Let it open normally. DO NOT flip.
+            if (e.target.closest('.hitbox') || e.target.closest('.social-btn') || e.target.closest('.glass-btn') || e.target.closest('#toast')) {
+                return;
+            }
+
+            // SCENARIO 3: Clean tap on empty screen or card body. Execute the FLIP!
+            if (!introDone) return; 
 
             isFlipped = !isFlipped;
             isFlipping = true;
@@ -609,9 +619,9 @@
                 let beta = e.beta; let gamma = e.gamma;
                 if (beta === null || gamma === null) return;
                 
-                // Gyroscope sensitivity reduced by tweaking divisor up to 3.0
-                let x = Math.max(-25, Math.min(25, (beta - 45) / 3));
-                let y = Math.max(-25, Math.min(25, gamma / 3));
+                // Divisor changed to 1.78 for exactly +5% sensitivity boost
+                let x = Math.max(-25, Math.min(25, (beta - 45) / 1.78));
+                let y = Math.max(-25, Math.min(25, gamma / 1.78));
 
                 if (introDone) {
                     bgPattern.style.transform = `translate(${y * -2}px, ${x * 2}px)`;
