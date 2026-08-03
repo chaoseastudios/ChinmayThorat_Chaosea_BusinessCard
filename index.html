@@ -165,7 +165,7 @@
             backface-visibility: hidden; -webkit-backface-visibility: hidden;
         }
 
-        /* INVISIBLE HITBOXES - Tightened bounds */
+        /* INVISIBLE HITBOXES */
         .hitbox { position: absolute; cursor: pointer; z-index: 20; display: block; text-decoration: none; }
         
         .hit-name { top: 12%; left: 6%; width: 40%; height: 12%; }
@@ -191,15 +191,17 @@
             position: absolute; bottom: 8vh; left: 50%; transform: translateX(-50%);
             opacity: 0; pointer-events: none;
             transition: opacity 0.4s ease, transform 0.4s ease; z-index: 50;
+            display: flex; gap: 15px; /* Added flex to align the two buttons side by side */
+            width: max-content;
         }
         #interactive-ui.show { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(-10px); }
         
         .glass-btn {
             background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; padding: 10px 24px;
+            border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; padding: 10px 20px;
             border-radius: 30px; font-size: 13px; font-weight: 400; letter-spacing: 1px;
             cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: all 0.3s ease;
-            text-transform: uppercase;
+            text-transform: uppercase; white-space: nowrap;
         }
 
         /* TOAST NOTIFICATION */
@@ -235,25 +237,21 @@
     <!-- 3D Card Area -->
     <div id="card-container">
         <div id="card-wrapper" class="idle-float">
-            <!-- Inner card handles 3D physics -->
             <div class="card-inner" id="card">
                 <!-- FRONT -->
                 <div class="card-face card-front"></div>
                 
                 <!-- BACK -->
                 <div class="card-face card-back">
-                    <!-- Action Hitboxes -->
                     <a class="hitbox hit-name" onclick="triggerAction(event, 'downloadVCard')" title="Save Contact"></a>
                     <a class="hitbox hit-phone" href="tel:+918879950929" oncontextmenu="copyText(event, '+918879950929')" ontouchstart="startPress(event, '+918879950929')" ontouchend="cancelPress()" title="Call (Long press to copy)"></a>
                     <a class="hitbox hit-email" href="mailto:business@chaoseastudios.com" oncontextmenu="copyText(event, 'business@chaoseastudios.com')" ontouchstart="startPress(event, 'business@chaoseastudios.com')" ontouchend="cancelPress()" title="Email (Long press to copy)"></a>
                     <a class="hitbox hit-web" href="https://chaoseastudios.com" target="_blank" oncontextmenu="copyText(event, 'https://chaoseastudios.com')" ontouchstart="startPress(event, 'https://chaoseastudios.com')" ontouchend="cancelPress()" title="Website (Long press to copy)"></a>
                     
-                    <!-- WhatsApp Button -->
                     <a class="social-btn btn-wa" href="https://wa.me/918879950929?text=Hello%20Chinmay,%20I%20just%20scanned%20your%20digital%20business%20card." target="_blank" onclick="triggerAction(event)" title="WhatsApp">
                         <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
                     </a>
                     
-                    <!-- Instagram Button -->
                     <a class="social-btn btn-ig" href="https://www.instagram.com/chaoseastudios/" target="_blank" onclick="triggerAction(event)" title="Instagram">
                         <svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
                     </a>
@@ -262,9 +260,10 @@
         </div>
     </div>
 
-    <!-- UI Button (Appears only on Flip) -->
+    <!-- UI Buttons -->
     <div id="interactive-ui">
-        <div class="glass-btn" onclick="triggerAction(event, 'downloadCardLink')">Download Card</div>
+        <div class="glass-btn" onclick="triggerAction(event, 'downloadCardLink')">Download QR</div>
+        <div class="glass-btn" onclick="triggerAction(event, 'addToWallet')">Add To Wallet</div>
     </div>
 
     <!-- UI Toast -->
@@ -304,14 +303,12 @@
             };
         })();
 
-        // Global unlock for Audio and Gyroscope security requirements
         window.addEventListener('click', function initSensors() {
             AudioEngine.init();
             requestGyroPermission();
             window.removeEventListener('click', initSensors);
         }, { once: true });
 
-        // Ripple Effect on any touch
         window.addEventListener('pointerdown', (e) => { 
             const rippleContainer = document.getElementById('ripple-container');
             if (rippleContainer) {
@@ -347,10 +344,8 @@
                 reset() {
                     this.x = Math.random() * width;
                     this.y = height + Math.random() * 100;
-                    
                     let baseSize = Math.random() * 1.5 + 0.5;
                     this.size = width < 768 ? baseSize * 0.6 : baseSize;
-                    
                     this.speed = Math.random() * 0.5 + 0.1;
                     this.alpha = Math.random() * 0.6 + 0.4; 
                     this.vx = 0;
@@ -384,33 +379,27 @@
             function init() {
                 window.addEventListener('resize', resize);
                 resize();
-                
                 for(let i=0; i<333; i++) particles.push(new Particle());
-                
                 window.addEventListener('pointermove', e => {
                     mouse.vx = e.clientX - mouse.x;
                     mouse.vy = e.clientY - mouse.y;
                     mouse.x = e.clientX;
                     mouse.y = e.clientY;
                 });
-                
                 requestAnimationFrame(animate);
             }
 
             function animate() {
                 ctx.fillStyle = '#050a14';
                 ctx.fillRect(0, 0, width, height);
-                
                 ctx.lineWidth = 0.5;
                 for (let i = 0; i < particles.length; i++) {
                     particles[i].update();
                     particles[i].draw();
-                    
                     for (let j = i + 1; j < particles.length; j++) {
                         let dx = particles[i].x - particles[j].x;
                         let dy = particles[i].y - particles[j].y;
                         let dist = dx*dx + dy*dy;
-                        
                         if (dist < 6000) { 
                             ctx.beginPath();
                             ctx.strokeStyle = `rgba(180, 220, 255, ${0.12 * (1 - dist/6000)})`;
@@ -429,16 +418,10 @@
         document.addEventListener('DOMContentLoaded', () => {
             const hour = new Date().getHours();
             let greeting = '';
-            
-            if (hour >= 4 && hour < 12) {
-                greeting = 'Good Morning';
-            } else if (hour >= 12 && hour < 17) {
-                greeting = 'Good Afternoon';
-            } else if (hour >= 17 && hour <= 23) {
-                greeting = 'Good Evening';
-            } else {
-                greeting = 'Hello, Night Owl';
-            }
+            if (hour >= 4 && hour < 12) greeting = 'Good Morning';
+            else if (hour >= 12 && hour < 17) greeting = 'Good Afternoon';
+            else if (hour >= 17 && hour <= 23) greeting = 'Good Evening';
+            else greeting = 'Hello, Night Owl';
             
             document.getElementById('greeting-text').textContent = greeting;
             runIntro();
@@ -451,7 +434,6 @@
             const logoCont = document.getElementById('logo-container');
             const textGroup = document.getElementById('intro-text');
             const cardCont = document.getElementById('card-container');
-
             const delay = ms => new Promise(res => setTimeout(res, ms));
 
             await delay(500); 
@@ -493,9 +475,7 @@
         let gyroPermissionGranted = false;
         let isFlipping = false;
 
-        // Pointerdown bound STRICTLY to the card so holding the card works
         card.addEventListener('pointerdown', (e) => {
-            // Ignore if clicking a button
             if (e.target.closest('.hitbox') || e.target.closest('.social-btn')) return;
             
             isDragging = true; 
@@ -503,12 +483,10 @@
             startX = e.clientX;
             startY = e.clientY;
             cardWrapper.classList.remove('idle-float');
-            card.style.transition = 'none'; // Lock to finger immediately
+            card.style.transition = 'none'; 
         });
 
-        // Pointermove and Up bound to window so you don't lose the drag if your finger slips off
         window.addEventListener('pointermove', (e) => {
-            // Ambient mouse parallax (only if no gyro)
             if (introDone && !gyroPermissionGranted && e.pointerType === 'mouse') {
                 let pctX = e.clientX / window.innerWidth;
                 let pctY = e.clientY / window.innerHeight;
@@ -522,15 +500,12 @@
             if (!isDragging) return;
             
             const dist = Math.sqrt(Math.pow(e.clientX - startX, 2) + Math.pow(e.clientY - startY, 2));
-            
-            // CLEAN THRESHOLD: 5px for mouse, 15px for touch to prevent thumb-roll taps from counting as drags
             let dragThreshold = (e.pointerType === 'mouse' || e.pointerType === 'pen') ? 5 : 15; 
             
             if (dist > dragThreshold) {
                 hasDragged = true;
             }
 
-            // Drag to Orbit Logic
             const bounds = card.getBoundingClientRect();
             let rotateX = ((e.clientY - bounds.top - bounds.height / 2) / 10) * -1; 
             let rotateY = ((e.clientX - bounds.left - bounds.width / 2) / 10);
@@ -543,13 +518,11 @@
         });
 
         window.addEventListener('pointerup', (e) => {
-            // Also listen to pointercancel
             if (!isDragging) return;
             isDragging = false;
             
             card.style.transition = 'transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
 
-            // If it wasn't a drag, it was a TAP!
             if (!hasDragged && introDone) {
                 isFlipped = !isFlipped;
                 isFlipping = true;
@@ -563,7 +536,6 @@
                 else ui.classList.remove('show');
             }
 
-            // Regardless of tap or drag, smoothly snap card to final resting place
             card.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
             card.style.boxShadow = '0 20px 50px rgba(0,0,0,0.6)'; 
 
@@ -588,9 +560,8 @@
             card.style.transform = `scale3d(1.02, 1.02, 1.02) rotate3d(1, 0, 0, ${x}deg) rotate3d(0, 1, 0, ${y}deg)`;
         }
 
-        // --- 4. GYROSCOPE (MOBILE PHONES ONLY) ---
+        // --- 4. GYROSCOPE ---
         function requestGyroPermission() {
-            // Excludes Desktop PCs, Macs, and iPads. Keeps gyro enabled ONLY for Mobile Phones.
             const isMobilePhone = /Android.*Mobile|iPhone|iPod/i.test(navigator.userAgent);
             if (!isMobilePhone) return;
 
@@ -621,7 +592,6 @@
                     
                     let pctX = Math.max(0, Math.min(1, (gamma + 90) / 180)); 
                     let pctY = Math.max(0, Math.min(1, (beta + 90) / 180));
-                    
                     let glowX = (window.innerWidth / 2) + ((pctX - 0.5) * window.innerWidth * 0.8);
                     let glowY = (window.innerHeight / 2) + ((pctY - 0.5) * window.innerHeight * 0.8);
                     
@@ -641,6 +611,31 @@
             if(navigator.vibrate) navigator.vibrate(30);
             if(actionType === 'downloadVCard') downloadVCard();
             if(actionType === 'downloadCardLink') downloadCardLink();
+            if(actionType === 'addToWallet') addToWallet();
+        }
+
+        // WALLET INTEGRATION
+        function addToWallet() {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const isAndroid = /Android/.test(navigator.userAgent);
+
+            // PLACEHOLDERS: Replace these with your actual files when ready
+            const applePassUrl = 'chaosea.pkpass'; // File must be in the same folder
+            const googleWalletUrl = '#'; // Update with Google Wallet URL if you generate one
+
+            if (isIOS) {
+                // Instantly triggers Apple Wallet download
+                window.location.href = applePassUrl;
+            } else if (isAndroid) {
+                // If you have a Google URL, use it. Otherwise, Samsung Wallet will read the pkpass
+                if (googleWalletUrl !== '#') {
+                    window.location.href = googleWalletUrl;
+                } else {
+                    window.location.href = applePassUrl; 
+                }
+            } else {
+                showToast("Open this site on your phone to add to Wallet!");
+            }
         }
 
         let pressTimer;
@@ -681,11 +676,11 @@
 
         function downloadCardLink(silent = false) {
             const targetLink = "http://chinmaythorat.chaoseastudios.com/";
-            const imagePath = "CTCS_BC_QR.png";
+            const imagePath = "CTCS_BC_QR.png"; // FIXED TO PNG
             
             const a = document.createElement('a');
             a.href = imagePath;
-            a.download = "CTCS_BC_QR.png";
+            a.download = "Chinmay_Thorat_QR.png"; // FIXED TO PNG
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
